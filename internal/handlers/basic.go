@@ -274,3 +274,57 @@ func (bh *BasicHandlers) MemoryLoadHandler(w http.ResponseWriter, r *http.Reques
 	bh.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Memory load simulation started",
 		zap.Int("size_mb", sizeMB), zap.Duration("duration", duration))
 }
+
+// LGTMStatusHandler checks the status of LGTM stack components
+func (bh *BasicHandlers) LGTMStatusHandler(w http.ResponseWriter, r *http.Request) {
+	services := map[string]string{
+		"prometheus": "http://prometheus:9090/-/healthy",
+		"grafana":    "http://grafana:3000/api/health",
+		"loki":       "http://loki:3100/ready",
+		"tempo":      "http://tempo:3200/ready",
+	}
+
+	// For local development, try localhost as fallback
+	localServices := map[string]string{
+		"prometheus": "http://localhost:9090/-/healthy",
+		"grafana":    "http://localhost:3000/api/health",
+		"loki":       "http://localhost:3100/ready",
+		"tempo":      "http://localhost:3200/ready",
+	}
+
+	status := make(map[string]interface{})
+
+	for service, url := range services {
+		serviceStatus := bh.checkServiceHealth(url)
+
+		// If docker service failed, try localhost
+		if serviceStatus == "offline" {
+			if localURL, exists := localServices[service]; exists {
+				serviceStatus = bh.checkServiceHealth(localURL)
+			}
+		}
+
+		status[service] = serviceStatus
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(status)
+}
+
+func (bh *BasicHandlers) checkServiceHealth(url string) string {
+	client := &http.Client{
+		Timeout: 2 * time.Second,
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return "offline"
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
+		return "online"
+	}
+
+	return "offline"
+}

@@ -173,36 +173,34 @@ window.ArgusApp = {
     },
     
     async checkLGTMStatus() {
-        const services = [
-            { name: 'Prometheus', url: 'http://localhost:9090', element: 'prometheus-status' },
-            { name: 'Grafana', url: 'http://localhost:3000', element: 'grafana-status' },
-            { name: 'Loki', url: 'http://localhost:3100', element: 'loki-status' },
-            { name: 'Tempo', url: 'http://localhost:3200', element: 'tempo-status' }
-        ];
-        
-        for (const service of services) {
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 1500);
+        // Use the new backend endpoint that actually checks LGTM services
+        try {
+            const response = await fetch('http://localhost:3001/lgtm-status', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (response.ok) {
+                const status = await response.json();
                 
-                const response = await fetch(service.url, { 
-                    signal: controller.signal,
-                    mode: 'no-cors' // Avoid CORS errors in console
+                // Update each service status based on actual checks
+                this.updateServiceStatus('prometheus-status', status.prometheus || 'offline');
+                this.updateServiceStatus('grafana-status', status.grafana || 'offline');
+                this.updateServiceStatus('loki-status', status.loki || 'offline');
+                this.updateServiceStatus('tempo-status', status.tempo || 'offline');
+            } else {
+                // If the endpoint fails, mark all as offline
+                const services = ['prometheus-status', 'grafana-status', 'loki-status', 'tempo-status'];
+                services.forEach(service => {
+                    this.updateServiceStatus(service, 'offline');
                 });
-                
-                clearTimeout(timeoutId);
-                // If we get any response, the service is running
-                this.updateServiceStatus(service.element, 'online');
-            } catch (error) {
-                // Silently handle expected errors when services aren't running
-                if (error.name === 'AbortError') {
-                    // Timeout might mean service is slow but running
-                    this.updateServiceStatus(service.element, 'online');
-                } else {
-                    // Network error - service likely not running
-                    this.updateServiceStatus(service.element, 'offline');
-                }
             }
+        } catch (error) {
+            // If we can't reach our backend, mark all as offline
+            const services = ['prometheus-status', 'grafana-status', 'loki-status', 'tempo-status'];
+            services.forEach(service => {
+                this.updateServiceStatus(service, 'offline');
+            });
         }
     },
     
