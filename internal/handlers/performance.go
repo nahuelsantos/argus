@@ -16,6 +16,7 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"github.com/nahuelsantos/argus/internal/metrics"
+	"github.com/nahuelsantos/argus/internal/middleware"
 	"github.com/nahuelsantos/argus/internal/services"
 )
 
@@ -57,27 +58,19 @@ func (ph *PerformanceHandlers) TestMetricsScale(w http.ResponseWriter, r *http.R
 	start := time.Now()
 	ph.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Starting metrics scale test...")
 
-	// Parse parameters
-	count := 10000 // Default: 10k metrics
-	if c := r.URL.Query().Get("count"); c != "" {
-		if parsed, err := strconv.Atoi(c); err == nil && parsed > 0 {
-			count = parsed
-		}
-	}
+	// Use validation config
+	validationConfig := middleware.DefaultValidationConfig()
 
-	duration := 30 * time.Second // Default: 30 seconds
-	if d := r.URL.Query().Get("duration"); d != "" {
-		if parsed, err := time.ParseDuration(d); err == nil {
-			duration = parsed
-		}
-	}
+	// Parse and validate parameters with proper limits
+	count := middleware.ValidateCount(r.URL.Query().Get("count"), validationConfig)
+	duration := middleware.ValidateDuration(r.URL.Query().Get("duration"), validationConfig)
+	concurrency := middleware.ValidateConcurrency(r.URL.Query().Get("concurrency"), validationConfig)
 
-	concurrency := 10 // Default: 10 concurrent workers
-	if c := r.URL.Query().Get("concurrency"); c != "" {
-		if parsed, err := strconv.Atoi(c); err == nil && parsed > 0 && parsed <= 50 {
-			concurrency = parsed
-		}
-	}
+	// Log the validated parameters
+	ph.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Metrics scale test parameters validated",
+		zap.Int("count", count),
+		zap.Duration("duration", duration),
+		zap.Int("concurrency", concurrency))
 
 	// Generate high-volume metrics
 	ctx, cancel := context.WithTimeout(r.Context(), duration)
@@ -147,25 +140,19 @@ func (ph *PerformanceHandlers) TestLogsScale(w http.ResponseWriter, r *http.Requ
 	start := time.Now()
 	ph.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Starting logs scale test...")
 
-	// Parse parameters
-	duration := 30 * time.Second
-	if d := r.URL.Query().Get("duration"); d != "" {
-		if parsed, err := time.ParseDuration(d); err == nil {
-			duration = parsed
-		}
-	}
+	// Use validation config
+	validationConfig := middleware.DefaultValidationConfig()
 
-	concurrency := 5 // Default: 5 concurrent log workers
-	if c := r.URL.Query().Get("concurrency"); c != "" {
-		if parsed, err := strconv.Atoi(c); err == nil && parsed > 0 && parsed <= 20 {
-			concurrency = parsed
-		}
-	}
+	// Parse and validate parameters with proper limits
+	duration := middleware.ValidateDuration(r.URL.Query().Get("duration"), validationConfig)
+	concurrency := middleware.ValidateConcurrency(r.URL.Query().Get("concurrency"), validationConfig)
+	logLevel := middleware.ValidateLogLevel(r.URL.Query().Get("level"))
 
-	logLevel := "mixed" // mixed, info, warn, error
-	if l := r.URL.Query().Get("level"); l != "" {
-		logLevel = l
-	}
+	// Log the validated parameters
+	ph.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Logs scale test parameters validated",
+		zap.Duration("duration", duration),
+		zap.Int("concurrency", concurrency),
+		zap.String("log_level", logLevel))
 
 	// Generate high-volume logs
 	ctx, cancel := context.WithTimeout(r.Context(), duration)
@@ -283,20 +270,17 @@ func (ph *PerformanceHandlers) TestTracesScale(w http.ResponseWriter, r *http.Re
 	start := time.Now()
 	ph.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Starting traces scale test...")
 
-	// Parse parameters
-	duration := 30 * time.Second
-	if d := r.URL.Query().Get("duration"); d != "" {
-		if parsed, err := time.ParseDuration(d); err == nil {
-			duration = parsed
-		}
-	}
+	// Use validation config
+	validationConfig := middleware.DefaultValidationConfig()
 
-	concurrency := 3 // Default: 3 concurrent trace workers
-	if c := r.URL.Query().Get("concurrency"); c != "" {
-		if parsed, err := strconv.Atoi(c); err == nil && parsed > 0 && parsed <= 10 {
-			concurrency = parsed
-		}
-	}
+	// Parse and validate parameters with proper limits
+	duration := middleware.ValidateDuration(r.URL.Query().Get("duration"), validationConfig)
+	concurrency := middleware.ValidatePositiveInt(r.URL.Query().Get("concurrency"), 3, 10) // Default 3, max 10 for traces
+
+	// Log the validated parameters
+	ph.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Traces scale test parameters validated",
+		zap.Duration("duration", duration),
+		zap.Int("concurrency", concurrency))
 
 	// Generate high-volume traces
 	ctx, cancel := context.WithTimeout(r.Context(), duration)
@@ -377,20 +361,17 @@ func (ph *PerformanceHandlers) TestDashboardLoad(w http.ResponseWriter, r *http.
 	start := time.Now()
 	ph.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Starting dashboard load test...")
 
-	// Parse parameters
-	concurrency := 5 // Default: 5 concurrent users
-	if c := r.URL.Query().Get("concurrency"); c != "" {
-		if parsed, err := strconv.Atoi(c); err == nil && parsed > 0 && parsed <= 20 {
-			concurrency = parsed
-		}
-	}
+	// Use validation config
+	validationConfig := middleware.DefaultValidationConfig()
 
-	requests := 100 // Default: 100 requests per user
-	if req := r.URL.Query().Get("requests"); req != "" {
-		if parsed, err := strconv.Atoi(req); err == nil && parsed > 0 {
-			requests = parsed
-		}
-	}
+	// Parse and validate parameters with proper limits
+	concurrency := middleware.ValidateConcurrency(r.URL.Query().Get("concurrency"), validationConfig)
+	requests := middleware.ValidatePositiveInt(r.URL.Query().Get("requests"), 100, 1000) // Default 100, max 1000
+
+	// Log the validated parameters
+	ph.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Dashboard load test parameters validated",
+		zap.Int("concurrency", concurrency),
+		zap.Int("requests", requests))
 
 	// Test dashboard endpoints
 	dashboardEndpoints := []string{

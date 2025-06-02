@@ -2,8 +2,11 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -48,22 +51,128 @@ func (rw *EnhancedResponseWriter) Write(data []byte) (int, error) {
 	return size, err
 }
 
-// CORSMiddleware handles CORS headers
-func CORSMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD")
+// RateLimitMiddleware provides rate limiting per IP address
+func RateLimitMiddleware(next http.Handler) http.Handler {
+	clients := make(map[string][]time.Time)
+	var mu sync.RWMutex
 
-		// For development, allow any headers that are requested
-		if requestedHeaders := r.Header.Get("Access-Control-Request-Headers"); requestedHeaders != "" {
-			w.Header().Set("Access-Control-Allow-Headers", requestedHeaders)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		clientIP := getClientIP(r)
+		now := time.Now()
+
+		mu.Lock()
+		defer mu.Unlock()
+
+		// Allow 1000 requests per minute per IP (generous for internal use)
+		if requests, exists := clients[clientIP]; exists {
+			// Clean old requests (older than 1 minute)
+			var recent []time.Time
+			for _, t := range requests {
+				if now.Sub(t) < time.Minute {
+					recent = append(recent, t)
+				}
+			}
+
+			if len(recent) >= 1000 {
+				http.Error(w, "Rate limit exceeded: 1000 requests per minute", http.StatusTooManyRequests)
+				return
+			}
+
+			clients[clientIP] = append(recent, now)
 		} else {
-			// Fallback to comprehensive list including all HTMX headers
-			w.Header().Set("Access-Control-Allow-Headers", "*")
+			clients[clientIP] = []time.Time{now}
 		}
 
+		next.ServeHTTP(w, r)
+	})
+}
+
+// SecurityHeadersMiddleware adds essential security headers for internal use
+func SecurityHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "SAMEORIGIN") // Less restrictive for internal
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// TimeoutMiddleware adds request timeout protection with conditional logic
+func TimeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Skip timeout for long-running performance test endpoints
+			if isLongRunningEndpoint(r.URL.Path) {
+				// For performance tests, use a much longer timeout or no timeout
+				longTimeout := 15 * time.Minute // 15 minutes max for performance tests
+
+				// Debug logging
+				fmt.Printf("DEBUG: Long-running endpoint detected: %s, using %v timeout\n", r.URL.Path, longTimeout)
+
+				ctx, cancel := context.WithTimeout(r.Context(), longTimeout)
+				defer cancel()
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
+
+			// Debug logging for normal endpoints
+			fmt.Printf("DEBUG: Normal endpoint: %s, using %v timeout\n", r.URL.Path, timeout)
+
+			// Apply normal timeout for other endpoints
+			ctx, cancel := context.WithTimeout(r.Context(), timeout)
+			defer cancel()
+
+			done := make(chan struct{})
+			go func() {
+				next.ServeHTTP(w, r.WithContext(ctx))
+				close(done)
+			}()
+
+			select {
+			case <-done:
+				// Request completed normally
+			case <-ctx.Done():
+				// Request timed out
+				http.Error(w, "Request timeout", http.StatusRequestTimeout)
+			}
+		})
+	}
+}
+
+// isLongRunningEndpoint checks if an endpoint is expected to run for a long time
+func isLongRunningEndpoint(path string) bool {
+	longRunningPaths := []string{
+		"/test-metrics-scale",
+		"/test-logs-scale",
+		"/test-traces-scale",
+		"/test-dashboard-load",
+		"/test-resource-usage",
+		"/test-storage-limits",
+		"/simulate/web-service",
+		"/simulate/api-service",
+		"/simulate/database-service",
+		"/simulate/static-site",
+		"/simulate/microservice",
+	}
+
+	for _, longPath := range longRunningPaths {
+		if path == longPath {
+			return true
+		}
+	}
+	return false
+}
+
+// CORSMiddleware handles CORS headers for internal network use
+func CORSMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Allow internal network access (safe for internal networks)
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Request-ID, X-User-ID, X-Session-ID")
 		w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID, X-Trace-ID")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		w.Header().Set("Access-Control-Max-Age", "86400") // 24 hours
 
 		if r.Method == "OPTIONS" {
@@ -209,6 +318,28 @@ func RequestCorrelationMiddleware(loggingService *services.LoggingService) func(
 	}
 }
 
+// Helper function to get client IP address
+func getClientIP(r *http.Request) string {
+	// Check for common proxy headers
+	if ip := r.Header.Get("X-Forwarded-For"); ip != "" {
+		// X-Forwarded-For can contain multiple IPs, take the first one
+		if idx := strings.Index(ip, ","); idx != -1 {
+			return strings.TrimSpace(ip[:idx])
+		}
+		return strings.TrimSpace(ip)
+	}
+
+	if ip := r.Header.Get("X-Real-IP"); ip != "" {
+		return strings.TrimSpace(ip)
+	}
+
+	// Fallback to RemoteAddr
+	if idx := strings.LastIndex(r.RemoteAddr, ":"); idx != -1 {
+		return r.RemoteAddr[:idx]
+	}
+	return r.RemoteAddr
+}
+
 // getLogLevel determines log level based on HTTP status code
 func getLogLevel(statusCode int) zapcore.Level {
 	switch {
@@ -229,8 +360,17 @@ func AddMiddleware(handler http.Handler, loggingService *services.LoggingService
 	// Apply Prometheus metrics middleware
 	wrapped = PrometheusMiddleware(wrapped)
 
+	// Apply security headers middleware
+	wrapped = SecurityHeadersMiddleware(wrapped)
+
 	// Apply CORS middleware
 	wrapped = CORSMiddleware(wrapped)
+
+	// Apply rate limiting middleware
+	wrapped = RateLimitMiddleware(wrapped)
+
+	// Apply timeout middleware (30 second default)
+	wrapped = TimeoutMiddleware(30 * time.Second)(wrapped)
 
 	// Apply request correlation middleware
 	wrapped = RequestCorrelationMiddleware(loggingService)(wrapped)

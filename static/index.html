@@ -12,6 +12,45 @@
         // Global config object
         window.ARGUS_CONFIG = null;
         
+        // Add error handling for rate limits and timeouts
+        document.addEventListener('htmx:responseError', function(evt) {
+            const xhr = evt.detail.xhr;
+            const url = evt.detail.requestConfig.path || '';
+            const isPerformanceTest = url.includes('test-') && (url.includes('scale') || url.includes('dashboard-load'));
+            
+            if (xhr.status === 429) {
+                evt.detail.target.innerHTML = '<p style="color: orange;">⚠️ Rate limit exceeded. Please wait a moment and try again.</p>';
+            } else if (xhr.status === 408) {
+                if (isPerformanceTest) {
+                    evt.detail.target.innerHTML = '<p style="color: orange;">⚠️ Performance test timed out (15 min limit). You may want to reduce duration or concurrency parameters.</p>';
+                } else {
+                    evt.detail.target.innerHTML = '<p style="color: orange;">⚠️ Request timeout. The operation may still be running in the background.</p>';
+                }
+            } else if (xhr.status >= 500) {
+                evt.detail.target.innerHTML = '<p style="color: red;">❌ Server error occurred. Please try again later.</p>';
+            } else if (xhr.status === 0) {
+                if (isPerformanceTest) {
+                    evt.detail.target.innerHTML = '<p style="color: orange;">⚠️ Connection lost during performance test. This may be due to network issues or the test taking too long.</p>';
+                } else {
+                    evt.detail.target.innerHTML = '<p style="color: red;">❌ Connection failed. Please check if Argus is running.</p>';
+                }
+            } else {
+                evt.detail.target.innerHTML = '<p style="color: red;">❌ Request failed. Please check your connection.</p>';
+            }
+        });
+        
+        // Add loading indicators with different messages for performance tests
+        document.addEventListener('htmx:beforeRequest', function(evt) {
+            const url = evt.detail.requestConfig.path || '';
+            const isPerformanceTest = url.includes('test-') && (url.includes('scale') || url.includes('dashboard-load'));
+            
+            if (isPerformanceTest) {
+                evt.detail.target.innerHTML = '<p style="color: blue;">🔄 Running performance test... This may take several minutes depending on your parameters.</p>';
+            } else {
+                evt.detail.target.innerHTML = '<p style="color: blue;">🔄 Processing request...</p>';
+            }
+        });
+        
         // Load configuration from API
         async function loadConfiguration() {
             try {
