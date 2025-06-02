@@ -561,7 +561,7 @@ window.ArgusApp = {
             grafana: {
                 url: 'http://localhost:3000',
                 username: 'admin',
-                password: 'admin'
+                password: ''
             },
             prometheus: {
                 url: 'http://localhost:9090',

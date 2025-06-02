@@ -149,6 +149,42 @@ Argus includes a modern web interface accessible at `http://localhost:3001`:
 
 ### Environment Variables
 
+Create a `.env` file from the example:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your actual values:
+
+```bash
+# LGTM Stack Default Credentials
+GRAFANA_USERNAME=admin
+GRAFANA_PASSWORD=your-grafana-password
+PROMETHEUS_USERNAME=
+PROMETHEUS_PASSWORD=
+
+# Alerting Service Credentials
+ALERTING_USERNAME=admin
+ALERTING_PASSWORD=your-secure-password-here
+
+# LGTM Stack Service URLs (if different from defaults)
+GRAFANA_URL=http://localhost:3000
+PROMETHEUS_URL=http://localhost:9090
+LOKI_URL=http://localhost:3100
+TEMPO_URL=http://localhost:3200
+
+# Optional: Override default timeouts (in seconds)
+LGTM_TIMEOUT=8
+HTTP_TIMEOUT=30
+
+# Optional: Environment and version override
+ARGUS_ENVIRONMENT=development
+ARGUS_VERSION=v0.0.1
+```
+
+### Legacy Environment Variables (Deprecated)
+
 ```bash
 # LGTM Stack URLs
 PROMETHEUS_URL=http://prometheus:9090

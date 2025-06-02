@@ -1,5 +1,7 @@
 package types
 
+import "os"
+
 // LGTMSettings represents the configuration for all LGTM stack services
 type LGTMSettings struct {
 	Grafana    ServiceConfig `json:"grafana"`
@@ -15,24 +17,32 @@ type ServiceConfig struct {
 	Password string `json:"password,omitempty"`
 }
 
+// getEnv returns environment variable or default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 // GetDefaults returns default LGTM settings for local development
 func GetDefaults() *LGTMSettings {
 	return &LGTMSettings{
 		Grafana: ServiceConfig{
-			URL:      "http://localhost:3000",
-			Username: "admin",
-			Password: "admin123",
+			URL:      getEnv("GRAFANA_URL", "http://localhost:3000"),
+			Username: getEnv("GRAFANA_USERNAME", "admin"),
+			Password: getEnv("GRAFANA_PASSWORD", ""),
 		},
 		Prometheus: ServiceConfig{
-			URL:      "http://localhost:9090",
-			Username: "",
-			Password: "",
+			URL:      getEnv("PROMETHEUS_URL", "http://localhost:9090"),
+			Username: getEnv("PROMETHEUS_USERNAME", ""),
+			Password: getEnv("PROMETHEUS_PASSWORD", ""),
 		},
 		Loki: ServiceConfig{
-			URL: "http://localhost:3100",
+			URL: getEnv("LOKI_URL", "http://localhost:3100"),
 		},
 		Tempo: ServiceConfig{
-			URL: "http://localhost:3200",
+			URL: getEnv("TEMPO_URL", "http://localhost:3200"),
 		},
 	}
 }
