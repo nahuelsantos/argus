@@ -69,9 +69,15 @@
                 </button>
                 <button class="nav-item" data-page="workload">
                     <div class="nav-item-icon">
-                        <img class="icon" src="icons/cloud-upload.svg" alt="workload simulation">
+                        <img class="icon" src="icons/cloud.svg" alt="workload simulation">
                     </div>
-                    <div class="nav-item-text">workload</div>
+                    <span class="nav-item-text">Workload Simulation</span>
+                </button>
+                <button class="nav-item" data-page="settings">
+                    <div class="nav-item-icon">
+                        <img class="icon" src="icons/cog.svg" alt="settings">
+                    </div>
+                    <span class="nav-item-text">Settings</span>
                 </button>
             </div>
             
@@ -362,6 +368,73 @@
                                 simulate microservices
                             </button>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="settings" class="page">
+                <div class="page-header">
+                    <h1 class="page-title">argus settings</h1>
+                    <p class="page-subtitle">configure LGTM stack endpoints and credentials for automated dashboard and rule creation</p>
+                </div>
+
+                <div class="settings-container">
+                    <div class="settings-section">
+                        <h3>grafana configuration</h3>
+                        <div class="setting-group">
+                            <label for="grafana-url">endpoint url</label>
+                            <input type="text" id="grafana-url" placeholder="http://localhost:3000" class="setting-input">
+                        </div>
+                        <div class="setting-group">
+                            <label for="grafana-username">username</label>
+                            <input type="text" id="grafana-username" placeholder="admin" class="setting-input">
+                        </div>
+                        <div class="setting-group">
+                            <label for="grafana-password">password</label>
+                            <input type="password" id="grafana-password" placeholder="admin" class="setting-input">
+                        </div>
+                        <button class="btn test-connection-btn" data-service="grafana">test connection</button>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>prometheus configuration</h3>
+                        <div class="setting-group">
+                            <label for="prometheus-url">endpoint url</label>
+                            <input type="text" id="prometheus-url" placeholder="http://localhost:9090" class="setting-input">
+                        </div>
+                        <div class="setting-group">
+                            <label for="prometheus-username">username (optional)</label>
+                            <input type="text" id="prometheus-username" placeholder="" class="setting-input">
+                        </div>
+                        <div class="setting-group">
+                            <label for="prometheus-password">password (optional)</label>
+                            <input type="password" id="prometheus-password" placeholder="" class="setting-input">
+                        </div>
+                        <button class="btn test-connection-btn" data-service="prometheus">test connection</button>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>loki configuration</h3>
+                        <div class="setting-group">
+                            <label for="loki-url">endpoint url</label>
+                            <input type="text" id="loki-url" placeholder="http://localhost:3100" class="setting-input">
+                        </div>
+                        <button class="btn test-connection-btn" data-service="loki">test connection</button>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>tempo configuration</h3>
+                        <div class="setting-group">
+                            <label for="tempo-url">endpoint url</label>
+                            <input type="text" id="tempo-url" placeholder="http://localhost:3200" class="setting-input">
+                        </div>
+                        <button class="btn test-connection-btn" data-service="tempo">test connection</button>
+                    </div>
+
+                    <div class="settings-actions">
+                        <button class="btn btn-primary" id="save-settings">save configuration</button>
+                        <button class="btn" id="reset-settings">reset to defaults</button>
                     </div>
                 </div>
             </div>

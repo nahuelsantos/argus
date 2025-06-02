@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/nahuelsantos/argus/internal/metrics"
 	"github.com/nahuelsantos/argus/internal/services"
+	"github.com/nahuelsantos/argus/internal/types"
 )
 
 // BasicHandlers contains basic HTTP handlers
@@ -333,4 +335,153 @@ func (bh *BasicHandlers) checkServiceHealth(url string) string {
 	}
 
 	return "offline"
+}
+
+// Global settings storage (in production, use database)
+var globalSettings *types.LGTMSettings
+
+// SettingsHandler handles settings save/load
+func (bh *BasicHandlers) SettingsHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		bh.getSettings(w, r)
+	case "POST":
+		bh.saveSettings(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (bh *BasicHandlers) getSettings(w http.ResponseWriter, r *http.Request) {
+	if globalSettings == nil {
+		globalSettings = types.GetDefaults()
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(globalSettings)
+}
+
+func (bh *BasicHandlers) saveSettings(w http.ResponseWriter, r *http.Request) {
+	var settings types.LGTMSettings
+	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	globalSettings = &settings
+
+	response := map[string]interface{}{
+		"status":    "saved",
+		"message":   "Settings saved successfully",
+		"timestamp": time.Now(),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// TestConnectionHandler tests connection to specific LGTM services
+func (bh *BasicHandlers) TestConnectionHandler(w http.ResponseWriter, r *http.Request) {
+	// Extract service name from URL path
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 4 {
+		http.Error(w, "Invalid service path", http.StatusBadRequest)
+		return
+	}
+	service := parts[3] // /api/test-connection/{service}
+
+	var config types.ServiceConfig
+	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	result := bh.testServiceConnection(service, config)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
+func (bh *BasicHandlers) testServiceConnection(service string, config types.ServiceConfig) map[string]interface{} {
+	var testURL string
+	var requiresAuth bool
+
+	switch service {
+	case "grafana":
+		testURL = config.URL + "/api/user" // This endpoint requires authentication
+		requiresAuth = true
+	case "prometheus":
+		testURL = config.URL + "/-/healthy"
+		requiresAuth = config.Username != ""
+	case "loki":
+		testURL = config.URL + "/ready"
+		requiresAuth = false
+	case "tempo":
+		testURL = config.URL + "/ready"
+		requiresAuth = false
+	default:
+		return map[string]interface{}{
+			"status":  "error",
+			"message": "Unknown service",
+		}
+	}
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	req, err := http.NewRequest("GET", testURL, nil)
+	if err != nil {
+		return map[string]interface{}{
+			"status":  "error",
+			"message": fmt.Sprintf("Failed to create request: %v", err),
+		}
+	}
+
+	// For Grafana, always test with credentials if provided
+	if service == "grafana" && config.Username != "" {
+		req.SetBasicAuth(config.Username, config.Password)
+	} else if requiresAuth && config.Username != "" {
+		req.SetBasicAuth(config.Username, config.Password)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return map[string]interface{}{
+			"status":  "error",
+			"message": fmt.Sprintf("Connection failed: %v", err),
+		}
+	}
+	defer resp.Body.Close()
+
+	// For Grafana, check for authentication errors
+	if service == "grafana" {
+		if resp.StatusCode == 401 || resp.StatusCode == 403 {
+			return map[string]interface{}{
+				"status":  "error",
+				"message": "Authentication failed - check username/password",
+				"details": map[string]interface{}{
+					"url":         testURL,
+					"status_code": resp.StatusCode,
+				},
+			}
+		}
+	}
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return map[string]interface{}{
+			"status":  "success",
+			"message": fmt.Sprintf("%s is accessible", service),
+			"details": map[string]interface{}{
+				"url":         testURL,
+				"status_code": resp.StatusCode,
+			},
+		}
+	} else {
+		return map[string]interface{}{
+			"status":  "error",
+			"message": fmt.Sprintf("%s returned HTTP %d", service, resp.StatusCode),
+			"details": map[string]interface{}{
+				"url":         testURL,
+				"status_code": resp.StatusCode,
+			},
+		}
+	}
 }

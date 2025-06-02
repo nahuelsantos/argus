@@ -103,6 +103,19 @@ window.ArgusApp = {
                 this.handleTestButton(e.target);
                 this.incrementActivityCounter();
             }
+            
+            // Settings handlers
+            if (e.target.matches('.test-connection-btn')) {
+                this.testConnection(e.target);
+            }
+            
+            if (e.target.matches('#save-settings')) {
+                this.saveSettings();
+            }
+            
+            if (e.target.matches('#reset-settings')) {
+                this.resetSettings();
+            }
         });
     },
     
@@ -176,6 +189,11 @@ window.ArgusApp = {
         });
         document.getElementById(pageId).classList.add('active');
         
+        // Load settings when navigating to settings page
+        if (pageId === 'settings') {
+            this.loadSettings();
+        }
+        
         this.currentPage = pageId;
     },
     
@@ -240,16 +258,15 @@ window.ArgusApp = {
         // Clear previous results
         this.hideResults();
         
-        // Show terminal and start progress
-        this.showTerminal();
-        this.addTerminalLine('', 'prompt');
+        // Show status bar instead of terminal
+        this.showStatusBar();
+        this.updateStatusBar('Starting test...', 10);
         
         // Force localhost for all requests
         const fullUrl = `http://localhost:3001${endpoint}${params}`;
         const curlCommand = `curl "${fullUrl}"`;
         
-        this.addTerminalLine(`$ ${curlCommand}`, 'command');
-        this.addTerminalLine('Starting test...', 'success');
+        this.updateStatusBar('Sending request...', 30);
         
         try {
             const response = await fetch(fullUrl, {
@@ -259,57 +276,94 @@ window.ArgusApp = {
                 },
             });
             
+            this.updateStatusBar('Processing response...', 70);
+            
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
             const result = await response.json();
             
-            this.addTerminalLine(`Test completed successfully`, 'success');
-            this.addTerminalLine(`Generated ${result.items_generated || 'N/A'} items`, 'success');
-            this.addTerminalLine(`Duration: ${result.duration_ms || result.duration || 'N/A'}`, 'success');
+            this.updateStatusBar('Test completed!', 100);
             
-            // Show results and guidance
-            this.showResults(testName, result, curlCommand);
+            // Hide status bar after completion
+            setTimeout(() => {
+                this.hideStatusBar();
+                // Show results with improved guidance
+                this.showResults(testName, result, curlCommand);
+            }, 1000);
+            
         } catch (error) {
-            this.addTerminalLine(`Request failed: ${error.message}`, 'error');
+            this.updateStatusBar(`Request failed: ${error.message}`, 100, true);
+            setTimeout(() => {
+                this.hideStatusBar();
+            }, 3000);
         } finally {
             // Re-enable button
             button.disabled = false;
             button.classList.remove('btn-loading');
-            this.addTerminalLine('$', 'prompt');
         }
     },
     
-    showTerminal() {
-        const terminal = document.querySelector('.terminal');
-        if (terminal) {
-            terminal.style.display = 'block';
-        } else {
-            // Create terminal if it doesn't exist
-            const terminalHtml = `
-                <div class="terminal">
-                    <div class="terminal-header">
-                        argus terminal
-                    </div>
-                    <div class="terminal-body" id="terminal-output"></div>
+    showStatusBar() {
+        const existingBar = document.querySelector('.status-bar');
+        if (existingBar) {
+            existingBar.remove();
+        }
+        
+        const statusBarHtml = `
+            <div class="status-bar">
+                <div class="status-bar-header">test progress</div>
+                <div class="status-bar-body">
+                    <div class="status-bar-fill" style="width: 0%"></div>
+                    <div class="status-bar-text">Starting...</div>
                 </div>
-            `;
-            document.querySelector('.page.active').insertAdjacentHTML('beforeend', terminalHtml);
+            </div>
+        `;
+        document.querySelector('.page.active').insertAdjacentHTML('beforeend', statusBarHtml);
+    },
+    
+    updateStatusBar(message, percentage, isError = false) {
+        const statusBar = document.querySelector('.status-bar');
+        if (statusBar) {
+            const fill = statusBar.querySelector('.status-bar-fill');
+            const text = statusBar.querySelector('.status-bar-text');
+            
+            if (fill) fill.style.width = `${percentage}%`;
+            if (text) text.textContent = message;
+            
+            if (isError) {
+                statusBar.classList.add('status-error');
+            }
         }
     },
     
-    addTerminalLine(text, type = '') {
-        const output = document.getElementById('terminal-output');
-        const line = document.createElement('div');
-        line.className = `terminal-line ${type ? 'terminal-' + type : ''}`;
-        line.textContent = text;
-        output.appendChild(line);
-        output.scrollTop = output.scrollHeight;
+    hideStatusBar() {
+        const statusBar = document.querySelector('.status-bar');
+        if (statusBar) {
+            statusBar.remove();
+        }
     },
     
     showResults(testName, result, command) {
         const guidance = this.getTestGuidance(testName, result);
+        
+        // Determine which fields to show based on the result
+        const hasItems = result.items_generated && result.items_generated !== 'N/A' && result.items_generated > 0;
+        const hasDuration = result.duration_ms || result.duration;
+        const shouldShowStats = hasItems || (hasDuration && hasDuration !== 'N/A');
+        
+        let statsHtml = '';
+        if (shouldShowStats) {
+            statsHtml = '<div class="results-stats">';
+            if (hasItems) {
+                statsHtml += `<p><strong>Items generated:</strong> ${result.items_generated}</p>`;
+            }
+            if (hasDuration && hasDuration !== 'N/A') {
+                statsHtml += `<p><strong>Duration:</strong> ${result.duration_ms || result.duration}</p>`;
+            }
+            statsHtml += '</div>';
+        }
         
         const resultsHtml = `
             <div class="results-section show">
@@ -317,12 +371,19 @@ window.ArgusApp = {
                     <h3 class="results-title">Test Completed: ${testName}</h3>
                 </div>
                 <div class="results-content">
-                    <p><strong>Command:</strong> <code>${command}</code></p>
-                    <p><strong>Items generated:</strong> ${result.items_generated || 'N/A'}</p>
-                    <p><strong>Duration:</strong> ${result.duration_ms || result.duration || 'N/A'}</p>
+                    <div class="command-section">
+                        <strong>Command:</strong> 
+                        <div class="command-container">
+                            <code class="command-text">${command}</code>
+                            <button class="copy-btn" onclick="ArgusApp.copyToClipboard('${command.replace(/'/g, "\\'")}')">
+                                <img src="icons/copy.svg" alt="copy" class="icon">
+                            </button>
+                        </div>
+                    </div>
+                    ${statsHtml}
                 </div>
                 <div class="guidance-section">
-                    <div class="guidance-title">Where to see results:</div>
+                    <div class="guidance-title">Verification Steps:</div>
                     <ul class="guidance-steps">
                         ${guidance.map(step => `<li>${step}</li>`).join('')}
                     </ul>
@@ -333,6 +394,22 @@ window.ArgusApp = {
         document.querySelector('.page.active').insertAdjacentHTML('beforeend', resultsHtml);
     },
     
+    copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            // Visual feedback
+            const copyBtn = event.target.closest('.copy-btn');
+            if (copyBtn) {
+                const originalHtml = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<img src="icons/check.svg" alt="copied" class="icon">';
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalHtml;
+                }, 1000);
+            }
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
+    },
+    
     hideResults() {
         document.querySelectorAll('.results-section').forEach(section => {
             section.remove();
@@ -341,40 +418,62 @@ window.ArgusApp = {
     
     getTestGuidance(testName, result) {
         const baseGuidance = {
+            'LGTM Integration Test': [
+                '1. <a href="http://localhost:3000" target="_blank">Open Grafana</a> → Check if datasources are connected',
+                '2. <a href="http://localhost:9090" target="_blank">Open Prometheus</a> → Verify targets are up in Status > Targets',
+                '3. <a href="http://localhost:3100/ready" target="_blank">Check Loki</a> → Should return "ready"',
+                '4. <a href="http://localhost:3200/ready" target="_blank">Check Tempo</a> → Should return "ready"',
+                '5. Review test results above for specific component status details'
+            ],
+            'Grafana Dashboard Test': [
+                '1. <a href="http://localhost:3000/d/argus-test-dashboard" target="_blank">Open Argus Testing Dashboard</a> (created by test)',
+                '2. Verify all panels are visible: Performance, System Resources, LGTM Health, Metrics, Logs, Test Status',
+                '3. Check data is flowing - run some performance/data tests to populate the dashboard',
+                '4. <a href="http://localhost:3000/dashboards" target="_blank">View all dashboards</a> to confirm creation'
+            ],
+            'Alert Rules Test': [
+                '1. <a href="http://localhost:9090/alerts" target="_blank">Open Prometheus Alerts</a> to see rule status',
+                '2. Check alert categories: System (CPU/Memory >50%), Test Failures, LGTM Health, API Performance',
+                '3. <a href="http://localhost:9090/rules" target="_blank">View Rules Configuration</a> to see loaded rules',
+                '4. Follow the instructions in test results to properly load rules if needed',
+                '5. Trigger some load to test the CPU/Memory alerts (they fire at >50% usage)'
+            ],
             'Metrics Scale Test': [
-                'Open Prometheus at http://localhost:9090',
-                'Go to Graph tab and search for "argus" or "performance_test"',
-                'Look for custom metrics like "custom_metric" and "http_requests_total"',
-                'Check the time range to see the generated data points'
+                '1. <a href="http://localhost:9090" target="_blank">Open Prometheus</a>',
+                '2. Go to Graph tab and search for "argus" or "performance_test"',
+                '3. Look for custom metrics like "custom_metric" and "http_requests_total"',
+                '4. Check the time range to see the generated data points'
             ],
             'Logs Scale Test': [
-                'Open Grafana at http://localhost:3000',
-                'Navigate to Explore > Loki data source',
-                'Use query: {service="argus"} | json',
-                'Filter by time range when the test was run to see generated logs'
+                '1. <a href="http://localhost:3000" target="_blank">Open Grafana</a>',
+                '2. Navigate to Explore > Loki data source',
+                '3. Use query: {service="argus"} | json',
+                '4. Filter by time range when the test was run to see generated logs'
             ],
             'Traces Scale Test': [
-                'Open Grafana at http://localhost:3000',
-                'Navigate to Explore > Tempo data source',
-                'Search for service name "argus" or operation names',
-                'Look for traces generated during the test timeframe'
+                '1. <a href="http://localhost:3000" target="_blank">Open Grafana</a>',
+                '2. Navigate to Explore > Tempo data source',
+                '3. Search for service name "argus" or operation names',
+                '4. Look for traces generated during the test timeframe'
             ],
             'Generate Metrics': [
-                'Open Prometheus at http://localhost:9090',
-                'Search for "argus_test_metric" in the Graph tab',
-                'View the metric values and timestamps'
+                '1. <a href="http://localhost:9090" target="_blank">Open Prometheus</a>',
+                '2. Search for "argus_test_metric" in the Graph tab',
+                '3. View the metric values and timestamps',
+                '4. Verify the metric count matches what was generated'
             ],
             'Generate Logs': [
-                'Open Grafana at http://localhost:3000',
-                'Go to Explore > Loki and query: {service="argus"}',
-                'See the structured logs generated by the test'
+                '1. <a href="http://localhost:3000" target="_blank">Open Grafana</a>',
+                '2. Go to Explore > Loki and query: {service="argus"}',
+                '3. See the structured logs generated by the test',
+                '4. Verify log count and format match expectations'
             ]
         };
         
         return baseGuidance[testName] || [
-            'Check the appropriate LGTM stack component for the generated data',
-            'Use the time range when the test was executed',
-            'Look for "argus" labels or service names in your queries'
+            '1. Check the appropriate LGTM stack component for the generated data',
+            '2. Use the time range when the test was executed',
+            '3. Look for "argus" labels or service names in your queries'
         ];
     },
     
@@ -417,6 +516,152 @@ window.ArgusApp = {
         document.getElementById('metrics-generated').textContent = localStorage.getItem('argus-metrics-generated') || '0';
         document.getElementById('logs-generated').textContent = localStorage.getItem('argus-logs-generated') || '0';
         document.getElementById('traces-generated').textContent = localStorage.getItem('argus-traces-generated') || '0';
+    },
+
+    // Settings Management
+    loadSettings() {
+        const defaultSettings = {
+            grafana: {
+                url: 'http://localhost:3000',
+                username: 'admin',
+                password: 'admin'
+            },
+            prometheus: {
+                url: 'http://localhost:9090',
+                username: '',
+                password: ''
+            },
+            loki: {
+                url: 'http://localhost:3100'
+            },
+            tempo: {
+                url: 'http://localhost:3200'
+            }
+        };
+
+        const saved = localStorage.getItem('argus-settings');
+        const settings = saved ? JSON.parse(saved) : defaultSettings;
+        
+        // Populate form fields
+        document.getElementById('grafana-url').value = settings.grafana?.url || defaultSettings.grafana.url;
+        document.getElementById('grafana-username').value = settings.grafana?.username || defaultSettings.grafana.username;
+        document.getElementById('grafana-password').value = settings.grafana?.password || defaultSettings.grafana.password;
+        
+        document.getElementById('prometheus-url').value = settings.prometheus?.url || defaultSettings.prometheus.url;
+        document.getElementById('prometheus-username').value = settings.prometheus?.username || defaultSettings.prometheus.username;
+        document.getElementById('prometheus-password').value = settings.prometheus?.password || defaultSettings.prometheus.password;
+        
+        document.getElementById('loki-url').value = settings.loki?.url || defaultSettings.loki.url;
+        document.getElementById('tempo-url').value = settings.tempo?.url || defaultSettings.tempo.url;
+        
+        return settings;
+    },
+
+    saveSettings() {
+        const settings = {
+            grafana: {
+                url: document.getElementById('grafana-url').value,
+                username: document.getElementById('grafana-username').value,
+                password: document.getElementById('grafana-password').value
+            },
+            prometheus: {
+                url: document.getElementById('prometheus-url').value,
+                username: document.getElementById('prometheus-username').value,
+                password: document.getElementById('prometheus-password').value
+            },
+            loki: {
+                url: document.getElementById('loki-url').value
+            },
+            tempo: {
+                url: document.getElementById('tempo-url').value
+            }
+        };
+
+        localStorage.setItem('argus-settings', JSON.stringify(settings));
+        
+        // Show feedback
+        const saveBtn = document.getElementById('save-settings');
+        const originalText = saveBtn.textContent;
+        saveBtn.textContent = 'saved!';
+        saveBtn.disabled = true;
+        
+        setTimeout(() => {
+            saveBtn.textContent = originalText;
+            saveBtn.disabled = false;
+        }, 2000);
+
+        // Also save to backend
+        fetch('http://localhost:3001/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settings)
+        }).catch(err => console.log('Backend save failed:', err));
+    },
+
+    resetSettings() {
+        localStorage.removeItem('argus-settings');
+        this.loadSettings();
+    },
+
+    async testConnection(button) {
+        const service = button.dataset.service;
+        const settings = this.getCurrentSettings();
+        
+        button.disabled = true;
+        button.textContent = 'testing...';
+        
+        // Remove any existing status indicators
+        const existingStatus = button.parentNode.querySelector('.connection-status');
+        if (existingStatus) {
+            existingStatus.remove();
+        }
+        
+        try {
+            const response = await fetch(`http://localhost:3001/api/test-connection/${service}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settings[service])
+            });
+            
+            const result = await response.json();
+            
+            // Create status indicator
+            const statusEl = document.createElement('span');
+            statusEl.className = `connection-status ${result.status === 'success' ? 'success' : 'error'}`;
+            statusEl.textContent = result.status === 'success' ? 'connected' : 'failed';
+            
+            button.parentNode.appendChild(statusEl);
+            
+        } catch (error) {
+            const statusEl = document.createElement('span');
+            statusEl.className = 'connection-status error';
+            statusEl.textContent = 'error';
+            button.parentNode.appendChild(statusEl);
+        } finally {
+            button.disabled = false;
+            button.textContent = 'test connection';
+        }
+    },
+
+    getCurrentSettings() {
+        return {
+            grafana: {
+                url: document.getElementById('grafana-url').value,
+                username: document.getElementById('grafana-username').value,
+                password: document.getElementById('grafana-password').value
+            },
+            prometheus: {
+                url: document.getElementById('prometheus-url').value,
+                username: document.getElementById('prometheus-username').value,
+                password: document.getElementById('prometheus-password').value
+            },
+            loki: {
+                url: document.getElementById('loki-url').value
+            },
+            tempo: {
+                url: document.getElementById('tempo-url').value
+            }
+        };
     }
 };
 

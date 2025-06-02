@@ -723,6 +723,11 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
+.sidebar-footer .nav-item {
+    margin-bottom: 1rem;
+    border-left: 3px solid transparent;
+}
+
 .theme-toggle {
     display: flex;
     align-items: center;
@@ -806,4 +811,228 @@ body {
 
 .terminal-body::-webkit-scrollbar-thumb {
     background: var(--border-color);
+}
+
+/* Status Bar (replaces terminal) */
+.status-bar {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    margin-top: 2rem;
+    font-family: inherit;
+}
+
+.status-bar-header {
+    background: var(--bg-tertiary);
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.status-bar-body {
+    padding: 1rem;
+    position: relative;
+    height: 40px;
+    background: var(--bg-primary);
+    border: 2px inset var(--border-color);
+}
+
+.status-bar-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: var(--accent-success);
+    transition: width 0.3s ease;
+    background-image: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 2px,
+        rgba(255,255,255,0.1) 2px,
+        rgba(255,255,255,0.1) 4px
+    );
+}
+
+.status-bar-text {
+    position: absolute;
+    top: 50%;
+    left: 1rem;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    z-index: 1;
+}
+
+.status-bar.status-error .status-bar-fill {
+    background: var(--accent-error);
+}
+
+/* Command section with copy button */
+.command-section {
+    margin-bottom: 1rem;
+}
+
+.command-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.command-text {
+    flex: 1;
+    background: var(--bg-primary);
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    font-family: inherit;
+    font-size: 0.85rem;
+}
+
+.copy-btn {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+}
+
+.copy-btn:hover {
+    background: var(--bg-secondary);
+    border-color: var(--text-secondary);
+}
+
+.copy-btn .icon {
+    width: 12px;
+    height: 12px;
+}
+
+/* Results stats section */
+.results-stats {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+}
+
+.results-stats p {
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+}
+
+/* Guidance section improvements */
+.guidance-steps li a {
+    color: var(--accent-success);
+    text-decoration: none;
+}
+
+.guidance-steps li a:hover {
+    text-decoration: underline;
+}
+
+/* Settings Page */
+.settings-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.settings-section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.settings-section h3 {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    text-transform: lowercase;
+}
+
+.setting-group {
+    margin-bottom: 1rem;
+}
+
+.setting-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    color: var(--text-secondary);
+    text-transform: lowercase;
+}
+
+.setting-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.9rem;
+    transition: border-color 0.2s ease;
+}
+
+.setting-input:focus {
+    outline: none;
+    border-color: var(--accent-success);
+}
+
+.setting-input::placeholder {
+    color: var(--text-muted);
+}
+
+.test-connection-btn {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    padding: 0.5rem 1rem;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+.settings-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.btn-primary {
+    background: var(--accent-success);
+    color: #000000;
+    border-color: var(--accent-success);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--text-primary);
+    border-color: var(--text-primary);
+}
+
+/* Connection status indicators */
+.connection-status {
+    display: inline-block;
+    font-size: 0.8rem;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+.connection-status.success {
+    color: #000000;
+    background: var(--accent-success);
+    border-color: var(--accent-success);
+}
+
+.connection-status.error {
+    color: var(--text-primary);
+    background: var(--accent-error);
+    border-color: var(--accent-error);
 } 

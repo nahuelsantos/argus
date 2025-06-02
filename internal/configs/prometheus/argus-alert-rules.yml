@@ -1,0 +1,144 @@
+groups:
+  - name: argus.system.rules
+    rules:
+      # System resource alerts
+      - alert: ArgusHighCPUUsage
+        expr: argus_cpu_usage_percent > 50
+        for: 2m
+        labels:
+          severity: warning
+          service: argus
+          type: system
+        annotations:
+          summary: "Argus CPU usage is high"
+          description: "Argus CPU usage has been above 50% for more than 2 minutes. Current value: {{ $value }}%"
+      
+      - alert: ArgusHighMemoryUsage
+        expr: argus_memory_usage_percent > 50
+        for: 2m
+        labels:
+          severity: warning
+          service: argus
+          type: system
+        annotations:
+          summary: "Argus memory usage is high"
+          description: "Argus memory usage has been above 50% for more than 2 minutes. Current value: {{ $value }}%"
+      
+      - alert: ArgusCriticalCPUUsage
+        expr: argus_cpu_usage_percent > 80
+        for: 1m
+        labels:
+          severity: critical
+          service: argus
+          type: system
+        annotations:
+          summary: "Argus CPU usage is critical"
+          description: "Argus CPU usage has been above 80% for more than 1 minute. Current value: {{ $value }}%"
+      
+      - alert: ArgusCriticalMemoryUsage
+        expr: argus_memory_usage_percent > 80
+        for: 1m
+        labels:
+          severity: critical
+          service: argus
+          type: system
+        annotations:
+          summary: "Argus memory usage is critical"
+          description: "Argus memory usage has been above 80% for more than 1 minute. Current value: {{ $value }}%"
+
+  - name: argus.tests.rules
+    rules:
+      # Test failure alerts
+      - alert: ArgusTestFailure
+        expr: argus_test_status == 0
+        for: 0s
+        labels:
+          severity: warning
+          service: argus
+          type: test
+        annotations:
+          summary: "Argus test {{ $labels.test_name }} failed"
+          description: "Test {{ $labels.test_name }} has failed. Check the test results and logs."
+      
+      - alert: ArgusPerformanceTestSlow
+        expr: argus_performance_test_duration_seconds > 60
+        for: 0s
+        labels:
+          severity: warning
+          service: argus
+          type: performance
+        annotations:
+          summary: "Argus performance test is slow"
+          description: "Performance test took {{ $value }} seconds, which is longer than expected (>60s)"
+
+  - name: argus.lgtm.rules
+    rules:
+      # LGTM stack health alerts
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: prometheus
+          type: infrastructure
+        annotations:
+          summary: "Prometheus is down"
+          description: "Prometheus has been down for more than 1 minute"
+      
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: grafana
+          type: infrastructure
+        annotations:
+          summary: "Grafana is down"
+          description: "Grafana has been down for more than 1 minute"
+      
+      - alert: LokiDown
+        expr: up{job="loki"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: loki
+          type: infrastructure
+        annotations:
+          summary: "Loki is down"
+          description: "Loki has been down for more than 1 minute"
+      
+      - alert: TempoDown
+        expr: up{job="tempo"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: tempo
+          type: infrastructure
+        annotations:
+          summary: "Tempo is down"
+          description: "Tempo has been down for more than 1 minute"
+
+  - name: argus.api.rules
+    rules:
+      # API and service health alerts
+      - alert: ArgusAPIResponseSlow
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{service="argus"}[5m])) > 2
+        for: 2m
+        labels:
+          severity: warning
+          service: argus
+          type: api
+        annotations:
+          summary: "Argus API responses are slow"
+          description: "95th percentile of API response time is {{ $value }}s (>2s) over the last 5 minutes"
+      
+      - alert: ArgusAPIErrorRate
+        expr: rate(http_requests_total{service="argus",status=~"5.."}[5m]) / rate(http_requests_total{service="argus"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: argus
+          type: api
+        annotations:
+          summary: "Argus API error rate is high"
+          description: "API error rate is {{ $value | humanizePercentage }} over the last 5 minutes" 

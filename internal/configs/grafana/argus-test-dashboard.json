@@ -1,0 +1,164 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Argus Testing Dashboard",
+    "tags": ["argus", "testing", "lgtm"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Performance Test Results",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "argus_performance_test_duration_seconds",
+            "legendFormat": "Test Duration (s)"
+          },
+          {
+            "expr": "argus_performance_test_requests_total",
+            "legendFormat": "Total Requests"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 12, "x": 0, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 30},
+                {"color": "red", "value": 60}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "System Resource Usage",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "argus_cpu_usage_percent",
+            "legendFormat": "CPU %"
+          },
+          {
+            "expr": "argus_memory_usage_percent", 
+            "legendFormat": "Memory %"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 12, "x": 12, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 50},
+                {"color": "red", "value": 80}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "LGTM Stack Health",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"prometheus\"}",
+            "legendFormat": "Prometheus"
+          },
+          {
+            "expr": "up{job=\"grafana\"}",
+            "legendFormat": "Grafana"
+          },
+          {
+            "expr": "up{job=\"loki\"}",
+            "legendFormat": "Loki"
+          },
+          {
+            "expr": "up{job=\"tempo\"}",
+            "legendFormat": "Tempo"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 24, "x": 0, "y": 4},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Generated Metrics Over Time",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(argus_test_metric_total[5m])",
+            "legendFormat": "Test Metrics/sec"
+          },
+          {
+            "expr": "rate(argus_custom_metric_total[5m])",
+            "legendFormat": "Custom Metrics/sec"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "Log Generation Rate",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(argus_logs_generated_total[5m])",
+            "legendFormat": "Logs/sec"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 6,
+        "title": "Test Execution Status",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "argus_test_status",
+            "legendFormat": "{{test_name}}"
+          }
+        ],
+        "gridPos": {"h": 6, "w": 24, "x": 0, "y": 16},
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "test_name": "Test Name",
+                "Value": "Status (1=Pass, 0=Fail)"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "5s",
+    "schemaVersion": 39,
+    "version": 1,
+    "uid": "argus-test-dashboard"
+  },
+  "folderId": 0,
+  "overwrite": true
+} 

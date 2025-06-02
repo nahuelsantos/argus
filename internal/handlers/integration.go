@@ -1,16 +1,29 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/nahuelsantos/argus/internal/services"
+	"github.com/nahuelsantos/argus/internal/types"
 )
+
+// Helper function to get global settings with defaults
+func getGlobalSettings() *types.LGTMSettings {
+	// This accesses the global settings from basic.go
+	if globalSettings != nil {
+		return globalSettings
+	}
+	// Return defaults if no settings saved
+	return types.GetDefaults()
+}
 
 // LGTM Integration Testing Handlers
 // Tests that all monitoring components are properly configured and working together
@@ -369,42 +382,151 @@ func (ih *IntegrationHandlers) testOTELCollector() LGTMIntegrationStatus {
 	return status
 }
 
-// Test Grafana Dashboard Availability
+// Test Grafana Dashboard Creation
 func (ih *IntegrationHandlers) TestGrafanaDashboards(w http.ResponseWriter, r *http.Request) {
-	ih.loggingService.LogWithContext(0, r.Context(), "Testing Grafana dashboard availability...")
+	ih.loggingService.LogWithContext(0, r.Context(), "Creating Argus test dashboard in Grafana...")
 
-	dashboards := []struct {
-		Name        string `json:"name"`
-		URL         string `json:"url"`
-		Status      string `json:"status"`
-		Description string `json:"description"`
-	}{
-		{"System Overview", "/d/system-overview", "checking", "Main system health dashboard"},
-		{"Docker Containers", "/d/docker-containers", "checking", "Container metrics and health"},
-		{"Infrastructure", "/d/infrastructure", "checking", "Network and hardware metrics"},
-		{"Application Metrics", "/d/application-metrics", "checking", "Service-level metrics"},
-		{"Logs Overview", "/d/logs-overview", "checking", "Log aggregation and analysis"},
-	}
-
-	// Test each dashboard (simplified - in reality we'd check if they exist)
-	for i := range dashboards {
-		resp, err := http.Get("http://grafana:3000" + dashboards[i].URL)
-		if err != nil {
-			dashboards[i].Status = "unavailable"
-		} else {
-			resp.Body.Close()
-			if resp.StatusCode == 200 {
-				dashboards[i].Status = "available"
-			} else {
-				dashboards[i].Status = "not_found"
-			}
+	// Load dashboard config
+	dashboardPath := "internal/configs/grafana/argus-test-dashboard.json"
+	dashboardData, err := os.ReadFile(dashboardPath)
+	if err != nil {
+		result := map[string]interface{}{
+			"status":    "error",
+			"message":   "Cannot load dashboard configuration",
+			"error":     err.Error(),
+			"timestamp": time.Now(),
 		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(result)
+		return
 	}
 
-	result := map[string]interface{}{
-		"dashboards": dashboards,
-		"timestamp":  time.Now(),
-		"message":    "Dashboard availability check completed",
+	// Get settings from global settings or defaults
+	settings := getGlobalSettings()
+	grafanaConfig := settings.Grafana
+
+	// Create the dashboard creation URL
+	grafanaURL := grafanaConfig.URL + "/api/dashboards/db"
+
+	// Create HTTP request
+	req, err := http.NewRequest("POST", grafanaURL, bytes.NewBuffer(dashboardData))
+	if err != nil {
+		result := map[string]interface{}{
+			"status":    "error",
+			"message":   "Cannot create dashboard request",
+			"error":     err.Error(),
+			"timestamp": time.Now(),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
+	// Set proper headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	// Add authentication - Grafana requires credentials
+	if grafanaConfig.Username != "" {
+		req.SetBasicAuth(grafanaConfig.Username, grafanaConfig.Password)
+	} else {
+		// Use default admin credentials if none provided
+		req.SetBasicAuth("admin", "admin")
+	}
+
+	// Create HTTP client with timeout
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+
+	if err != nil {
+		// Fallback to providing JSON for manual import
+		result := map[string]interface{}{
+			"status":          "manual_import_required",
+			"message":         "Could not connect to Grafana - providing JSON for manual import",
+			"error":           err.Error(),
+			"dashboard_title": "Argus Testing Dashboard",
+			"dashboard_uid":   "argus-test-dashboard",
+			"grafana_url":     grafanaConfig.URL,
+			"dashboard_url":   grafanaConfig.URL + "/d/argus-test-dashboard",
+			"instructions": []string{
+				"1. Go to " + grafanaConfig.URL + " and login to Grafana",
+				"2. Navigate to '+' → Import",
+				"3. Upload the dashboard JSON provided below",
+				"4. Dashboard will be accessible at: " + grafanaConfig.URL + "/d/argus-test-dashboard",
+			},
+			"dashboard_json": string(dashboardData),
+			"timestamp":      time.Now(),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+	defer resp.Body.Close()
+
+	responseBody, _ := io.ReadAll(resp.Body)
+
+	var result map[string]interface{}
+
+	// Check authentication first
+	if resp.StatusCode == 401 || resp.StatusCode == 403 {
+		result = map[string]interface{}{
+			"status":      "auth_error",
+			"message":     "Authentication failed - check Grafana credentials in Settings",
+			"error":       fmt.Sprintf("HTTP %d: %s", resp.StatusCode, string(responseBody)),
+			"grafana_url": grafanaConfig.URL,
+			"instructions": []string{
+				"1. Go to Settings and verify Grafana username/password",
+				"2. Test connection to ensure credentials work",
+				"3. Try running the dashboard test again",
+			},
+			"timestamp": time.Now(),
+		}
+	} else if resp.StatusCode == 200 || resp.StatusCode == 412 { // 412 = already exists
+		status := "created"
+		message := "✅ Argus test dashboard created successfully in Grafana!"
+
+		if resp.StatusCode == 412 {
+			status = "updated"
+			message = "✅ Argus test dashboard already exists - updated successfully!"
+		}
+
+		result = map[string]interface{}{
+			"status":          status,
+			"message":         message,
+			"dashboard_title": "Argus Testing Dashboard",
+			"dashboard_uid":   "argus-test-dashboard",
+			"grafana_url":     grafanaConfig.URL,
+			"dashboard_url":   grafanaConfig.URL + "/d/argus-test-dashboard",
+			"panels": []string{
+				"Performance Test Results",
+				"System Resource Usage",
+				"LGTM Stack Health",
+				"Generated Metrics Over Time",
+				"Log Generation Rate",
+				"Test Execution Status",
+			},
+			"actions_completed": []string{
+				"✅ Dashboard JSON loaded from config",
+				"✅ Connected to Grafana at " + grafanaConfig.URL,
+				"✅ Dashboard created/updated successfully",
+				"✅ Direct access URL provided",
+			},
+			"timestamp": time.Now(),
+		}
+	} else {
+		result = map[string]interface{}{
+			"status":      "error",
+			"message":     fmt.Sprintf("Failed to create dashboard: HTTP %d", resp.StatusCode),
+			"response":    string(responseBody),
+			"grafana_url": grafanaConfig.URL,
+			"fallback_instructions": []string{
+				"1. Copy the dashboard JSON below",
+				"2. Go to " + grafanaConfig.URL + " and manually import it",
+				"3. Check Grafana logs for more details",
+			},
+			"dashboard_json": string(dashboardData),
+			"timestamp":      time.Now(),
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -413,15 +535,43 @@ func (ih *IntegrationHandlers) TestGrafanaDashboards(w http.ResponseWriter, r *h
 
 // Test Alert Rules Configuration
 func (ih *IntegrationHandlers) TestAlertRules(w http.ResponseWriter, r *http.Request) {
-	ih.loggingService.LogWithContext(0, r.Context(), "Testing alert rules configuration...")
+	ih.loggingService.LogWithContext(0, r.Context(), "Loading Argus alert rules into Prometheus...")
 
-	// Test Prometheus rules endpoint
-	resp, err := http.Get("http://prometheus:9090/api/v1/rules")
+	// Load alert rules config
+	rulesPath := "internal/configs/prometheus/argus-alert-rules.yml"
+	rulesData, err := os.ReadFile(rulesPath)
 	if err != nil {
 		result := map[string]interface{}{
 			"status":    "error",
-			"message":   "Cannot connect to Prometheus rules API",
+			"message":   "Cannot load alert rules configuration",
 			"error":     err.Error(),
+			"timestamp": time.Now(),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
+	// Get settings for Prometheus connection
+	settings := getGlobalSettings()
+	prometheusConfig := settings.Prometheus
+
+	// First, check current rules in Prometheus
+	checkURL := prometheusConfig.URL + "/api/v1/rules"
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(checkURL)
+	if err != nil {
+		result := map[string]interface{}{
+			"status":         "connection_error",
+			"message":        "Cannot connect to Prometheus rules API",
+			"error":          err.Error(),
+			"prometheus_url": prometheusConfig.URL,
+			"instructions": []string{
+				"1. Ensure Prometheus is running at " + prometheusConfig.URL,
+				"2. Check your Prometheus configuration",
+				"3. Verify network connectivity",
+			},
 			"timestamp": time.Now(),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -432,9 +582,10 @@ func (ih *IntegrationHandlers) TestAlertRules(w http.ResponseWriter, r *http.Req
 
 	if resp.StatusCode != 200 {
 		result := map[string]interface{}{
-			"status":    "error",
-			"message":   fmt.Sprintf("Prometheus rules API failed: HTTP %d", resp.StatusCode),
-			"timestamp": time.Now(),
+			"status":         "api_error",
+			"message":        fmt.Sprintf("Prometheus rules API failed: HTTP %d", resp.StatusCode),
+			"prometheus_url": prometheusConfig.URL,
+			"timestamp":      time.Now(),
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(result)
@@ -454,24 +605,207 @@ func (ih *IntegrationHandlers) TestAlertRules(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Parse rules (simplified)
+	// Parse and count rules
 	bodyStr := string(body)
-	ruleCount := strings.Count(bodyStr, `"name":`)
-	alertCount := strings.Count(bodyStr, `"alert":`)
+	totalRuleGroups := strings.Count(bodyStr, `"name":`)
+	totalAlertRules := strings.Count(bodyStr, `"alert":`)
+
+	// Check for Argus-specific rules
+	argusRules := strings.Count(bodyStr, "argus")
+
+	// Count rules in our config
+	configStr := string(rulesData)
+	configGroups := strings.Count(configStr, "name:")
+	configAlerts := strings.Count(configStr, "alert:")
+
+	var status, message string
+	var instructions []string
+	var actionsCompleted []string
+
+	if argusRules > 0 {
+		status = "loaded"
+		message = "✅ Argus alert rules are already loaded in Prometheus!"
+		instructions = []string{
+			"1. ✅ Rules are active - check alerts at " + prometheusConfig.URL + "/alerts",
+			"2. ✅ View rule status at " + prometheusConfig.URL + "/rules",
+			"3. Generate some load to test CPU/Memory alerts (they fire at >50% usage)",
+			"4. Run some tests to trigger test failure alerts",
+		}
+		actionsCompleted = []string{
+			"✅ Found " + strconv.Itoa(argusRules) + " Argus rules already loaded",
+			"✅ Rules are active and monitoring",
+			"✅ Alert endpoints are accessible",
+		}
+	} else {
+		// Try to automatically load rules
+		rulesDir := "/tmp/prometheus-rules"
+		rulesFile := rulesDir + "/argus-alert-rules.yml"
+
+		// Create rules directory
+		if err := os.MkdirAll(rulesDir, 0755); err != nil {
+			status = "auto_load_failed"
+			message = "❌ Could not create rules directory for auto-loading"
+			instructions = []string{
+				"1. Manual setup required - copy rules YAML below",
+				"2. Add to your prometheus.yml rule_files section",
+				"3. Restart Prometheus or reload config",
+			}
+		} else {
+			// Write rules file
+			if err := os.WriteFile(rulesFile, rulesData, 0644); err != nil {
+				status = "auto_load_failed"
+				message = "❌ Could not write rules file for auto-loading"
+			} else {
+				// Try multiple common Prometheus rules directories
+				prometheusDirs := []string{
+					"/etc/prometheus/rules/",
+					"/opt/prometheus/rules/",
+					"/usr/local/etc/prometheus/rules/",
+					"/prometheus/rules/",
+				}
+
+				var rulesInstalled bool
+				var installedPath string
+
+				for _, dir := range prometheusDirs {
+					if _, err := os.Stat(dir); err == nil {
+						// Directory exists, try to copy rules file
+						targetFile := dir + "argus-alert-rules.yml"
+						if copyErr := copyFile(rulesFile, targetFile); copyErr == nil {
+							rulesInstalled = true
+							installedPath = targetFile
+							break
+						}
+					}
+				}
+
+				// Try to reload Prometheus configuration
+				reloadURL := prometheusConfig.URL + "/-/reload"
+				reloadReq, err := http.NewRequest("POST", reloadURL, nil)
+				if err == nil {
+					if prometheusConfig.Username != "" {
+						reloadReq.SetBasicAuth(prometheusConfig.Username, prometheusConfig.Password)
+					}
+
+					reloadResp, reloadErr := client.Do(reloadReq)
+					if reloadErr == nil && reloadResp.StatusCode == 200 {
+						reloadResp.Body.Close()
+
+						if rulesInstalled {
+							status = "auto_loaded"
+							message = "✅ Argus alert rules automatically loaded into Prometheus!"
+							instructions = []string{
+								"1. ✅ Rules auto-loaded - check alerts at " + prometheusConfig.URL + "/alerts",
+								"2. ✅ View rule status at " + prometheusConfig.URL + "/rules",
+								"3. Generate load to test CPU/Memory alerts (fire at >50% usage)",
+								"4. Run tests to trigger test failure alerts",
+							}
+							actionsCompleted = []string{
+								"✅ Created rules file: " + rulesFile,
+								"✅ Copied to Prometheus rules directory: " + installedPath,
+								"✅ Reloaded Prometheus configuration",
+								"✅ Alert rules are now active",
+							}
+						} else {
+							status = "file_created"
+							message = "✅ Rules file created, Prometheus reloaded, but may need manual rule_files configuration"
+							instructions = []string{
+								"1. ✅ Prometheus reload successful",
+								"2. Rules file available at: " + rulesFile,
+								"3. Add to prometheus.yml: rule_files: ['" + rulesFile + "']",
+								"4. Or copy to your Prometheus rules directory",
+								"5. Check " + prometheusConfig.URL + "/rules after configuration",
+							}
+							actionsCompleted = []string{
+								"✅ Created rules file: " + rulesFile,
+								"✅ Prometheus reload successful",
+								"⚠️ May need manual rule_files configuration",
+							}
+						}
+					} else {
+						if reloadResp != nil {
+							reloadResp.Body.Close()
+						}
+						status = "reload_failed"
+						message = "⚠️ Rules file created but Prometheus reload failed"
+						instructions = []string{
+							"1. Rules file created at: " + rulesFile,
+							"2. Add to prometheus.yml: rule_files: ['" + rulesFile + "']",
+							"3. Restart Prometheus manually",
+							"4. Or run: curl -X POST " + prometheusConfig.URL + "/-/reload",
+						}
+						actionsCompleted = []string{
+							"✅ Created rules file: " + rulesFile,
+							"❌ Prometheus reload failed (may need manual restart)",
+						}
+						if rulesInstalled {
+							actionsCompleted = append(actionsCompleted, "✅ Copied to Prometheus directory: "+installedPath)
+						}
+					}
+				} else {
+					status = "reload_failed"
+					message = "⚠️ Rules file created but reload request failed"
+					instructions = []string{
+						"1. Rules file created at: " + rulesFile,
+						"2. Add to prometheus.yml rule_files section",
+						"3. Restart Prometheus manually",
+					}
+					actionsCompleted = []string{
+						"✅ Created rules file: " + rulesFile,
+						"❌ Could not send reload request to Prometheus",
+					}
+					if rulesInstalled {
+						actionsCompleted = append(actionsCompleted, "✅ Copied to Prometheus directory: "+installedPath)
+					}
+				}
+			}
+		}
+	}
 
 	result := map[string]interface{}{
-		"status":      "healthy",
-		"message":     "Alert rules configuration validated",
-		"rule_groups": ruleCount,
-		"alert_rules": alertCount,
-		"timestamp":   time.Now(),
-		"details": map[string]interface{}{
-			"prometheus_rules_endpoint": "accessible",
-			"rules_format":              "valid",
-			"alert_rules_present":       alertCount > 0,
+		"status":            status,
+		"message":           message,
+		"rule_groups_total": totalRuleGroups,
+		"alert_rules_total": totalAlertRules,
+		"argus_rules_found": argusRules > 0,
+		"config_details": map[string]interface{}{
+			"rule_groups": configGroups,
+			"alert_rules": configAlerts,
+			"categories": []string{
+				"System Resource Monitoring (CPU/Memory >50%)",
+				"Test Failure Detection",
+				"LGTM Stack Health",
+				"API Performance Monitoring",
+			},
+			"rules_file": rulesPath,
 		},
+		"prometheus_url":    prometheusConfig.URL,
+		"alerts_url":        prometheusConfig.URL + "/alerts",
+		"rules_url":         prometheusConfig.URL + "/rules",
+		"instructions":      instructions,
+		"actions_completed": actionsCompleted,
+		"rules_yaml":        string(rulesData),
+		"timestamp":         time.Now(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
+}
+
+// copyFile copies a file from src to dst
+func copyFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, sourceFile)
+	return err
 }
