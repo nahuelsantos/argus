@@ -4,461 +4,380 @@
     <meta charset="UTF-8">
     <title>Argus - LGTM Stack Validator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- HTMX Library -->
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-    <script>
-        // Configure HTMX 2.0 for cross-origin requests
-        htmx.config.selfRequestsOnly = false;
-        
-        // Global config object
-        window.ARGUS_CONFIG = null;
-        
-        // Add error handling for rate limits and timeouts
-        document.addEventListener('htmx:responseError', function(evt) {
-            const xhr = evt.detail.xhr;
-            const url = evt.detail.requestConfig.path || '';
-            const isPerformanceTest = url.includes('test-') && (url.includes('scale') || url.includes('dashboard-load'));
-            
-            if (xhr.status === 429) {
-                evt.detail.target.innerHTML = '<p style="color: orange;">⚠️ Rate limit exceeded. Please wait a moment and try again.</p>';
-            } else if (xhr.status === 408) {
-                if (isPerformanceTest) {
-                    evt.detail.target.innerHTML = '<p style="color: orange;">⚠️ Performance test timed out (15 min limit). You may want to reduce duration or concurrency parameters.</p>';
-                } else {
-                    evt.detail.target.innerHTML = '<p style="color: orange;">⚠️ Request timeout. The operation may still be running in the background.</p>';
-                }
-            } else if (xhr.status >= 500) {
-                evt.detail.target.innerHTML = '<p style="color: red;">❌ Server error occurred. Please try again later.</p>';
-            } else if (xhr.status === 0) {
-                if (isPerformanceTest) {
-                    evt.detail.target.innerHTML = '<p style="color: orange;">⚠️ Connection lost during performance test. This may be due to network issues or the test taking too long.</p>';
-                } else {
-                    evt.detail.target.innerHTML = '<p style="color: red;">❌ Connection failed. Please check if Argus is running.</p>';
-                }
-            } else {
-                evt.detail.target.innerHTML = '<p style="color: red;">❌ Request failed. Please check your connection.</p>';
-            }
-        });
-        
-        // Add loading indicators with different messages for performance tests
-        document.addEventListener('htmx:beforeRequest', function(evt) {
-            const url = evt.detail.requestConfig.path || '';
-            const isPerformanceTest = url.includes('test-') && (url.includes('scale') || url.includes('dashboard-load'));
-            
-            if (isPerformanceTest) {
-                evt.detail.target.innerHTML = '<p style="color: blue;">🔄 Running performance test... This may take several minutes depending on your parameters.</p>';
-            } else {
-                evt.detail.target.innerHTML = '<p style="color: blue;">🔄 Processing request...</p>';
-            }
-        });
-        
-        // Load configuration from API
-        async function loadConfiguration() {
-            try {
-                // Try multiple potential API endpoints based on hostname
-                const configEndpoints = [
-                    `http://${window.location.hostname}:3001/config`,  // Same host, different port
-                    'http://localhost:3001/config',                   // Localhost fallback
-                ];
-                
-                let config = null;
-                for (const endpoint of configEndpoints) {
-                    try {
-                        console.log(`Trying to load config from: ${endpoint}`);
-                        const response = await fetch(endpoint);
-                        if (response.ok) {
-                            config = await response.json();
-                            console.log('Configuration loaded from:', endpoint, config);
-                            window.ARGUS_CONFIG = config;
-                            break;
-                        }
-                    } catch (err) {
-                        console.log(`Failed to load from ${endpoint}:`, err.message);
-                    }
-                }
-                
-                if (!config) {
-                    console.warn('Could not load configuration from any endpoint');
-                    // Set fallback config
-                    window.ARGUS_CONFIG = {
-                        api_base_url: `http://${window.location.hostname}:3001`,
-                        version: 'v0.0.1',
-                        environment: 'fallback'
-                    };
-                }
-                
-                // Update all data-hx-get attributes to use the correct base URL
-                updateHTMXEndpoints();
-                
-            } catch (error) {
-                console.error('Error loading configuration:', error);
-                // Set fallback config
-                window.ARGUS_CONFIG = {
-                    api_base_url: `http://${window.location.hostname}:3001`,
-                    version: 'v0.0.1',
-                    environment: 'fallback'
-                };
-                updateHTMXEndpoints();
-            }
-        }
-        
-        // Update HTMX endpoints with correct base URL
-        function updateHTMXEndpoints() {
-            if (!window.ARGUS_CONFIG) return;
-            
-            const baseURL = window.ARGUS_CONFIG.api_base_url;
-            document.querySelectorAll('[data-hx-get]').forEach(element => {
-                const endpoint = element.getAttribute('data-hx-get');
-                if (endpoint && !endpoint.startsWith('http')) {
-                    element.setAttribute('hx-get', baseURL + endpoint);
-                }
-            });
-            
-            // Update version display
-            updateVersionDisplay();
-        }
-        
-        // Update version display from config
-        function updateVersionDisplay() {
-            if (window.ARGUS_CONFIG && window.ARGUS_CONFIG.version) {
-                const versionElement = document.querySelector('.version');
-                if (versionElement) {
-                    versionElement.textContent = window.ARGUS_CONFIG.version;
-                }
-            }
-        }
-        
-        // Load configuration when DOM is ready
-        document.addEventListener('DOMContentLoaded', loadConfiguration);
-    </script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: #ffffff;
-            min-height: 100vh;
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 30px 0;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-        }
-        
-        .header h1 {
-            font-size: 3rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        
-        .header .subtitle {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            margin-bottom: 20px;
-        }
-        
-        .header .version {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-        }
-        
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-bottom: 40px;
-        }
-        
-        .card {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 25px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-        
-        .card h3 {
-            font-size: 1.5rem;
-            margin-bottom: 15px;
-            color: #ffd700;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-        }
-        
-        .card p {
-            margin-bottom: 20px;
-            opacity: 0.9;
-        }
-        
-        .button-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .btn {
-            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-        }
-        
-        .btn:hover {
-            background: linear-gradient(45deg, #ff5252, #ff7979);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
-        }
-        
-        .btn:active {
-            transform: translateY(0);
-        }
-        
-        .btn.secondary {
-            background: linear-gradient(45deg, #4ecdc4, #6bebd6);
-        }
-        
-        .btn.secondary:hover {
-            background: linear-gradient(45deg, #26d0ce, #55efc4);
-            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
-        }
-        
-        .btn.tertiary {
-            background: linear-gradient(45deg, #a29bfe, #6c5ce7);
-        }
-        
-        .btn.tertiary:hover {
-            background: linear-gradient(45deg, #8b80fc, #5a4fcf);
-            box-shadow: 0 5px 15px rgba(162, 155, 254, 0.4);
-        }
-        
-        .response-area {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            min-height: 100px;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 0.9rem;
-            white-space: pre-wrap;
-            overflow-y: auto;
-            max-height: 400px;
-        }
-        
-        .quick-links {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 30px;
-        }
-        
-        .quick-link {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 10px;
-            text-decoration: none;
-            color: white;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .quick-link:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-2px);
-        }
-        
-        .quick-link h4 {
-            margin-bottom: 5px;
-            color: #ffd700;
-        }
-        
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 8px;
-            background: #4CAF50;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
-        }
-        
-        .footer {
-            text-align: center;
-            margin-top: 50px;
-            padding: 20px;
-            opacity: 0.7;
-            font-size: 0.9rem;
-        }
-        
-        .eye-icon {
-            font-size: 2rem;
-            margin-bottom: 10px;
-            display: block;
-        }
-        
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-            
-            .container {
-                padding: 15px;
-            }
-        }
-    </style>
+    
+    <!-- External Resources -->
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/app.js" defer></script>
+    
+    <!-- Font Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- 
+    Icons from Pixel Icon Library by HackerNoon
+    License: https://github.com/hackernoon/pixel-icons
+    Website: https://pixeliconlibrary.com/
+    -->
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <span class="eye-icon">👁️</span>
-            <h1>Argus</h1>
-            <p class="subtitle">LGTM Stack Validator</p>
-            <span class="version">v0.0.1</span>
-        </div>
+    <div class="layout">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <img class="icon" src="icons/home.svg" alt="argus logo">
+                    </div>
+                    <div class="logo-text">argus</div>
+                </div>
+                <button class="sidebar-toggle">
+                    <img src="icons/angle-left.svg" alt="collapse sidebar">
+                </button>
+            </div>
+            
+            <div class="nav-menu">
+                <button class="nav-item active" data-page="home">
+                    <div class="nav-item-icon">
+                        <img class="icon" src="icons/home.svg" alt="home">
+                    </div>
+                    <div class="nav-item-text">home</div>
+                </button>
+                <button class="nav-item" data-page="integration">
+                    <div class="nav-item-icon">
+                        <img class="icon" src="icons/chart-network.svg" alt="integration">
+                    </div>
+                    <div class="nav-item-text">integration</div>
+                </button>
+                <button class="nav-item" data-page="performance">
+                    <div class="nav-item-icon">
+                        <img class="icon" src="icons/chart-line.svg" alt="performance">
+                    </div>
+                    <div class="nav-item-text">performance</div>
+                </button>
+                <button class="nav-item" data-page="data">
+                    <div class="nav-item-icon">
+                        <img class="icon" src="icons/data-science.svg" alt="data generation">
+                    </div>
+                    <div class="nav-item-text">data</div>
+                </button>
+                <button class="nav-item" data-page="workload">
+                    <div class="nav-item-icon">
+                        <img class="icon" src="icons/cloud-upload.svg" alt="workload simulation">
+                    </div>
+                    <div class="nav-item-text">workload</div>
+                </button>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="theme-toggle">
+                    <img class="icon" src="icons/moon.svg" alt="dark mode">
+                    <div class="toggle-switch">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <img class="icon" src="icons/sun.svg" alt="light mode">
+                </div>
+            </div>
+        </nav>
         
-        <div class="grid">
-            <!-- LGTM Stack Integration Testing -->
-            <div class="card">
-                <h3>📊 LGTM Stack Integration Testing</h3>
-                <p>Validate complete LGTM stack connectivity and health</p>
-                <div class="button-group">
-                    <button class="btn" data-hx-get="/test-lgtm-integration" hx-target="#response">
-                        <span class="status-indicator"></span>Test LGTM Integration
-                    </button>
-                    <button class="btn secondary" data-hx-get="/test-grafana-dashboards" hx-target="#response">
-                        Test Grafana Dashboards
-                    </button>
-                    <button class="btn tertiary" data-hx-get="/test-alert-rules" hx-target="#response">
-                        Test Alert Rules
-                    </button>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Home Page -->
+            <div id="home" class="page active">
+                <div class="page-header">
+                    <h1 class="page-title">LGTM Stack Monitor</h1>
+                    <p class="page-subtitle">observability stack validation and synthetic data testing</p>
+                </div>
+                
+                <div class="status-grid">
+                    <div class="status-card">
+                        <div id="prometheus-status" class="status-indicator status-offline"></div>
+                        <div class="status-info">
+                            <h4>prometheus</h4>
+                            <small>metrics & alerting</small>
+                        </div>
+                    </div>
+                    <div class="status-card">
+                        <div id="grafana-status" class="status-indicator status-offline"></div>
+                        <div class="status-info">
+                            <h4>grafana</h4>
+                            <small>visualization</small>
+                        </div>
+                    </div>
+                    <div class="status-card">
+                        <div id="loki-status" class="status-indicator status-offline"></div>
+                        <div class="status-info">
+                            <h4>loki</h4>
+                            <small>log aggregation</small>
+                        </div>
+                    </div>
+                    <div class="status-card">
+                        <div id="tempo-status" class="status-indicator status-offline"></div>
+                        <div class="status-info">
+                            <h4>tempo</h4>
+                            <small>distributed tracing</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="cards-grid">
+                    <div class="card">
+                        <h3 class="card-title">quick actions</h3>
+                        <div class="btn-group">
+                            <button class="btn test-btn" 
+                                    data-endpoint="/health" 
+                                    data-test-name="Health Check">
+                                health check
+                            </button>
+                            <button class="btn test-btn" 
+                                    data-endpoint="/test-lgtm-integration" 
+                                    data-test-name="LGTM Integration Test">
+                                test lgtm stack
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title">system links</h3>
+                        <div class="card-description">
+                            <p>prometheus: localhost:9090</p>
+                            <p>grafana: localhost:3000</p>
+                            <p>loki: localhost:3100</p>
+                            <p>tempo: localhost:3200</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title">activity summary</h3>
+                        <div class="card-description">
+                            <p>tests run today: <span id="tests-run">0</span></p>
+                            <p>metrics generated: <span id="metrics-generated">0</span></p>
+                            <p>logs generated: <span id="logs-generated">0</span></p>
+                            <p>traces generated: <span id="traces-generated">0</span></p>
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <!-- Performance & Scale Testing -->
-            <div class="card">
-                <h3>🚀 Performance & Scale Testing</h3>
-                <p>High-volume data processing and performance validation</p>
-                <div class="button-group">
-                    <button class="btn" data-hx-get="/test-metrics-scale" hx-target="#response">
-                        Test Metrics Scale
-                    </button>
-                    <button class="btn secondary" data-hx-get="/test-logs-scale" hx-target="#response">
-                        Test Logs Scale  
-                    </button>
-                    <button class="btn tertiary" data-hx-get="/test-traces-scale" hx-target="#response">
-                        Test Traces Scale
-                    </button>
+            <!-- Integration Page -->
+            <div id="integration" class="page">
+                <div class="page-header">
+                    <h1 class="page-title">LGTM Integration Testing</h1>
+                    <p class="page-subtitle">validate complete stack connectivity and health</p>
+                </div>
+                
+                <div class="cards-grid">
+                    <div class="card">
+                        <h3 class="card-title">stack integration</h3>
+                        <p class="card-description">test complete lgtm stack connectivity and data flow</p>
+                        <div class="btn-group">
+                            <button class="btn test-btn" 
+                                    data-endpoint="/test-lgtm-integration" 
+                                    data-test-name="LGTM Integration Test">
+                                test lgtm integration
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title">grafana dashboards</h3>
+                        <p class="card-description">validate grafana dashboard availability and data sources</p>
+                        <div class="btn-group">
+                            <button class="btn test-btn" 
+                                    data-endpoint="/test-grafana-dashboards" 
+                                    data-test-name="Grafana Dashboard Test">
+                                test dashboards
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title">alert rules</h3>
+                        <p class="card-description">verify prometheus alert configuration and rules</p>
+                        <div class="btn-group">
+                            <button class="btn test-btn" 
+                                    data-endpoint="/test-alert-rules" 
+                                    data-test-name="Alert Rules Test">
+                                test alert rules
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <!-- Data Generation -->
-            <div class="card">
-                <h3>📈 Data Generation</h3>
-                <p>Generate realistic test data for LGTM stack validation</p>
-                <div class="button-group">
-                    <button class="btn" data-hx-get="/generate-metrics" hx-target="#response">
-                        Generate Metrics
-                    </button>
-                    <button class="btn secondary" data-hx-get="/generate-logs" hx-target="#response">
-                        Generate Logs
-                    </button>
-                    <button class="btn tertiary" data-hx-get="/generate-error" hx-target="#response">
-                        Generate Errors
-                    </button>
+            <!-- Performance Page -->
+            <div id="performance" class="page">
+                <div class="page-header">
+                    <h1 class="page-title">Performance & Scale Testing</h1>
+                    <p class="page-subtitle">high-volume data processing and performance validation</p>
+                </div>
+                
+                <div class="cards-grid">
+                    <div class="card">
+                        <h3 class="card-title">metrics scale</h3>
+                        <p class="card-description">generate high-volume metrics to test prometheus ingestion</p>
+                        <div class="btn-group">
+                            <button class="btn test-btn" 
+                                    data-endpoint="/test-metrics-scale" 
+                                    data-params="?duration=1m&concurrency=5"
+                                    data-test-name="Metrics Scale Test">
+                                test metrics scale
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title">logs scale</h3>
+                        <p class="card-description">generate high-volume logs to test loki processing</p>
+                        <div class="btn-group">
+                            <button class="btn test-btn" 
+                                    data-endpoint="/test-logs-scale" 
+                                    data-params="?duration=1m&concurrency=3"
+                                    data-test-name="Logs Scale Test">
+                                test logs scale
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title">traces scale</h3>
+                        <p class="card-description">generate traces to test tempo storage and querying</p>
+                        <div class="btn-group">
+                            <button class="btn test-btn" 
+                                    data-endpoint="/test-traces-scale" 
+                                    data-params="?duration=30s&concurrency=2"
+                                    data-test-name="Traces Scale Test">
+                                test traces scale
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title">dashboard load</h3>
+                        <p class="card-description">stress test grafana dashboards and performance</p>
+                        <div class="btn-group">
+                            <button class="btn test-btn" 
+                                    data-endpoint="/test-dashboard-load" 
+                                    data-params="?concurrency=3&requests=50"
+                                    data-test-name="Dashboard Load Test">
+                                test dashboard load
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <!-- Workload Simulation -->
-            <div class="card">
-                <h3>🎭 Workload Simulation</h3>
-                <p>Simulate realistic production service patterns</p>
-                <div class="button-group">
-                    <button class="btn" data-hx-get="/simulate/web-service" hx-target="#response">
-                        Web Service
-                    </button>
-                    <button class="btn secondary" data-hx-get="/simulate/api-service" hx-target="#response">
-                        API Service
-                    </button>
-                    <button class="btn tertiary" data-hx-get="/simulate/database-service" hx-target="#response">
-                        Database Service
-                    </button>
+            <!-- Data Page -->
+            <div id="data" class="page">
+                <div class="page-header">
+                    <h1 class="page-title">Data Generation</h1>
+                    <p class="page-subtitle">generate realistic test data for lgtm stack validation</p>
+                </div>
+                
+                <div class="cards-grid">
+                    <div class="card">
+                        <h3 class="card-title">generate metrics</h3>
+                        <p class="card-description">create custom prometheus metrics with realistic patterns</p>
+                        <div class="btn-group">
+                            <button class="btn test-btn" 
+                                    data-endpoint="/generate-metrics" 
+                                    data-test-name="Generate Metrics">
+                                generate metrics
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title">generate logs</h3>
+                        <p class="card-description">create structured and unstructured logs for loki testing</p>
+                        <div class="btn-group">
+                            <button class="btn test-btn" 
+                                    data-endpoint="/generate-logs" 
+                                    data-test-name="Generate Logs">
+                                generate logs
+                            </button>
+                            <button class="btn test-btn" 
+                                    data-endpoint="/generate-logs/json" 
+                                    data-test-name="Generate JSON Logs">
+                                generate json logs
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title">generate errors</h3>
+                        <p class="card-description">simulate error scenarios for alerting and testing</p>
+                        <div class="btn-group">
+                            <button class="btn test-btn" 
+                                    data-endpoint="/generate-error" 
+                                    data-test-name="Generate Errors">
+                                generate errors
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Response Area -->
-        <div id="response" class="response-area">
-            💬 Welcome to Argus! Click any button above to test your LGTM stack...
-        </div>
-        
-        <!-- Quick Links -->
-        <div class="quick-links">
-            <a href="http://localhost:3000" class="quick-link" target="_blank">
-                <h4>📊 Grafana</h4>
-                <p>Dashboards & Visualization</p>
-            </a>
-            <a href="http://localhost:9090" class="quick-link" target="_blank">
-                <h4>📈 Prometheus</h4>
-                <p>Metrics & Alerting</p>
-            </a>
-            <a href="http://localhost:3100" class="quick-link" target="_blank">
-                <h4>📝 Loki</h4>
-                <p>Log Aggregation</p>
-            </a>
-            <a href="http://localhost:3200" class="quick-link" target="_blank">
-                <h4>🔍 Tempo</h4>
-                <p>Distributed Tracing</p>
-            </a>
-        </div>
-        
-        <div class="footer">
-            <p>👁️ "With a hundred eyes, Argus sees all - ensuring your monitoring never sleeps."</p>
-            <p>Built with ❤️ for the LGTM community</p>
-        </div>
+            
+            <!-- Workload Page -->
+            <div id="workload" class="page">
+                <div class="page-header">
+                    <h1 class="page-title">Workload Simulation</h1>
+                    <p class="page-subtitle">simulate realistic production service patterns</p>
+                </div>
+                
+                <div class="cards-grid">
+                    <div class="card">
+                        <h3 class="card-title">web service</h3>
+                        <p class="card-description">simulate web service traffic patterns and user interactions</p>
+                        <div class="btn-group">
+                            <button class="btn test-btn" 
+                                    data-endpoint="/simulate/web-service" 
+                                    data-test-name="Web Service Simulation">
+                                simulate web service
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title">api service</h3>
+                        <p class="card-description">simulate rest api traffic with authentication and rate limiting</p>
+                        <div class="btn-group">
+                            <button class="btn test-btn" 
+                                    data-endpoint="/simulate/api-service" 
+                                    data-test-name="API Service Simulation">
+                                simulate api service
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title">database service</h3>
+                        <p class="card-description">simulate database workloads with query patterns</p>
+                        <div class="btn-group">
+                            <button class="btn test-btn" 
+                                    data-endpoint="/simulate/database-service" 
+                                    data-test-name="Database Service Simulation">
+                                simulate database
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title">microservices</h3>
+                        <p class="card-description">simulate microservice communication patterns</p>
+                        <div class="btn-group">
+                            <button class="btn test-btn" 
+                                    data-endpoint="/simulate/microservice" 
+                                    data-test-name="Microservice Simulation">
+                                simulate microservices
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 </body>
 </html> 
