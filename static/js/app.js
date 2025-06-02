@@ -33,6 +33,23 @@ window.ArgusApp = {
                     
                     if (response.ok) {
                         this.config = await response.json();
+                        
+                        // Update version and environment in the UI if we have them
+                        if (this.config.version) {
+                            const versionElement = document.querySelector('.logo-text .version');
+                            if (versionElement) {
+                                versionElement.textContent = this.config.version.trim();
+                            }
+                        }
+                        
+                        // Show dev badge if in development environment
+                        if (this.config.environment === 'development') {
+                            const envBadge = document.querySelector('.logo-text .env-badge');
+                            if (envBadge) {
+                                envBadge.textContent = 'dev';
+                                envBadge.style.display = 'inline';
+                            }
+                        }
                         break;
                     }
                 } catch (err) {

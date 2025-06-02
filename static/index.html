@@ -29,9 +29,13 @@
             <div class="sidebar-header">
                 <div class="logo">
                     <div class="logo-icon">
-                        <img class="icon" src="icons/home.svg" alt="argus logo">
+                        <img class="icon" src="icons/eye.svg" alt="argus logo">
                     </div>
-                    <div class="logo-text">argus</div>
+                    <div class="logo-text">
+                        argus 
+                        <span class="version"></span>
+                        <span class="env-badge" style="display: none;"></span>
+                    </div>
                 </div>
                 <button class="sidebar-toggle">
                     <img src="icons/angle-left.svg" alt="collapse sidebar">
@@ -124,28 +128,12 @@
                 
                 <div class="cards-grid">
                     <div class="card">
-                        <h3 class="card-title">quick actions</h3>
-                        <div class="btn-group">
-                            <button class="btn test-btn" 
-                                    data-endpoint="/health" 
-                                    data-test-name="Health Check">
-                                health check
-                            </button>
-                            <button class="btn test-btn" 
-                                    data-endpoint="/test-lgtm-integration" 
-                                    data-test-name="LGTM Integration Test">
-                                test lgtm stack
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="card">
-                        <h3 class="card-title">system links</h3>
+                        <h3 class="card-title">direct links</h3>
                         <div class="card-description">
-                            <p>prometheus: localhost:9090</p>
-                            <p>grafana: localhost:3000</p>
-                            <p>loki: localhost:3100</p>
-                            <p>tempo: localhost:3200</p>
+                            <p><a href="http://localhost:9090" target="_blank">prometheus: localhost:9090</a></p>
+                            <p><a href="http://localhost:3000" target="_blank">grafana: localhost:3000</a></p>
+                            <p><a href="http://localhost:3100" target="_blank">loki: localhost:3100</a></p>
+                            <p><a href="http://localhost:3200" target="_blank">tempo: localhost:3200</a></p>
                         </div>
                     </div>
                     
