@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -108,17 +107,11 @@ func TimeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
 				// For performance tests, use a much longer timeout or no timeout
 				longTimeout := 15 * time.Minute // 15 minutes max for performance tests
 
-				// Debug logging
-				fmt.Printf("DEBUG: Long-running endpoint detected: %s, using %v timeout\n", r.URL.Path, longTimeout)
-
 				ctx, cancel := context.WithTimeout(r.Context(), longTimeout)
 				defer cancel()
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
-
-			// Debug logging for normal endpoints
-			fmt.Printf("DEBUG: Normal endpoint: %s, using %v timeout\n", r.URL.Path, timeout)
 
 			// Apply normal timeout for other endpoints
 			ctx, cancel := context.WithTimeout(r.Context(), timeout)

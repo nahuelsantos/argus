@@ -104,6 +104,16 @@ window.ArgusApp = {
                 this.incrementActivityCounter();
             }
             
+            // Copy button handler
+            if (e.target.closest('.copy-btn')) {
+                const copyBtn = e.target.closest('.copy-btn');
+                const commandId = copyBtn.dataset.commandId;
+                if (commandId && this.storedCommands && this.storedCommands[commandId]) {
+                    const textToCopy = this.storedCommands[commandId];
+                    this.copyToClipboard(textToCopy, e);
+                }
+            }
+            
             // Settings handlers
             if (e.target.matches('.test-connection-btn')) {
                 this.testConnection(e.target);
@@ -258,14 +268,18 @@ window.ArgusApp = {
         // Clear previous results
         this.hideResults();
         
-        // Show status bar instead of terminal
+        // Show status bar
         this.showStatusBar();
         this.updateStatusBar('Starting test...', 10);
         
-        // Force localhost for all requests
         const fullUrl = `http://localhost:3001${endpoint}${params}`;
         const curlCommand = `curl "${fullUrl}"`;
         
+        // Use regular fetch for all tests (no more SSE complexity)
+        this.handleRegularTest(fullUrl, testName, curlCommand, button);
+    },
+    
+    async handleRegularTest(fullUrl, testName, curlCommand, button) {
         this.updateStatusBar('Sending request...', 30);
         
         try {
@@ -289,7 +303,6 @@ window.ArgusApp = {
             // Hide status bar after completion
             setTimeout(() => {
                 this.hideStatusBar();
-                // Show results with improved guidance
                 this.showResults(testName, result, curlCommand);
             }, 1000);
             
@@ -299,7 +312,6 @@ window.ArgusApp = {
                 this.hideStatusBar();
             }, 3000);
         } finally {
-            // Re-enable button
             button.disabled = false;
             button.classList.remove('btn-loading');
         }
@@ -348,9 +360,16 @@ window.ArgusApp = {
     showResults(testName, result, command) {
         const guidance = this.getTestGuidance(testName, result);
         
+        // Store command with unique ID to avoid template literal issues
+        const commandId = 'cmd-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11);
+        if (!this.storedCommands) {
+            this.storedCommands = {};
+        }
+        this.storedCommands[commandId] = command;
+        
         // Determine which fields to show based on the result
         const hasItems = result.items_generated && result.items_generated !== 'N/A' && result.items_generated > 0;
-        const hasDuration = result.duration_ms || result.duration;
+        const hasDuration = result.duration_seconds || result.duration;
         const shouldShowStats = hasItems || (hasDuration && hasDuration !== 'N/A');
         
         let statsHtml = '';
@@ -360,7 +379,9 @@ window.ArgusApp = {
                 statsHtml += `<p><strong>Items generated:</strong> ${result.items_generated}</p>`;
             }
             if (hasDuration && hasDuration !== 'N/A') {
-                statsHtml += `<p><strong>Duration:</strong> ${result.duration_ms || result.duration}</p>`;
+                const durationValue = result.duration_seconds || result.duration;
+                const durationText = typeof durationValue === 'number' ? `${durationValue.toFixed(2)}s` : durationValue;
+                statsHtml += `<p><strong>Duration:</strong> ${durationText}</p>`;
             }
             statsHtml += '</div>';
         }
@@ -375,7 +396,7 @@ window.ArgusApp = {
                         <strong>Command:</strong> 
                         <div class="command-container">
                             <code class="command-text">${command}</code>
-                            <button class="copy-btn" onclick="ArgusApp.copyToClipboard('${command.replace(/'/g, "\\'")}')">
+                            <button class="copy-btn" data-command-id="${commandId}">
                                 <img src="icons/copy.svg" alt="copy" class="icon">
                             </button>
                         </div>
@@ -394,7 +415,7 @@ window.ArgusApp = {
         document.querySelector('.page.active').insertAdjacentHTML('beforeend', resultsHtml);
     },
     
-    copyToClipboard(text) {
+    copyToClipboard(text, event) {
         navigator.clipboard.writeText(text).then(() => {
             // Visual feedback
             const copyBtn = event.target.closest('.copy-btn');
@@ -406,7 +427,16 @@ window.ArgusApp = {
                 }, 1000);
             }
         }).catch(err => {
-            console.error('Failed to copy: ', err);
+            console.error('Failed to copy to clipboard:', err);
+            // Show user-friendly error
+            const copyBtn = event.target.closest('.copy-btn');
+            if (copyBtn) {
+                const originalHtml = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<span style="color: var(--error-color); font-size: 12px;">failed</span>';
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalHtml;
+                }, 2000);
+            }
         });
     },
     
@@ -432,17 +462,24 @@ window.ArgusApp = {
                 '4. <a href="http://localhost:3000/dashboards" target="_blank">View all dashboards</a> to confirm creation'
             ],
             'Alert Rules Test': [
-                '1. <a href="http://localhost:9090/alerts" target="_blank">Open Prometheus Alerts</a> to see rule status',
-                '2. Check alert categories: System (CPU/Memory >50%), Test Failures, LGTM Health, API Performance',
-                '3. <a href="http://localhost:9090/rules" target="_blank">View Rules Configuration</a> to see loaded rules',
-                '4. Follow the instructions in test results to properly load rules if needed',
-                '5. Trigger some load to test the CPU/Memory alerts (they fire at >50% usage)'
+                '1. <a href="http://localhost:9090/api/v1/rules" target="_blank">Check Rules API</a> - Verify Prometheus rules endpoint is accessible',
+                '2. <a href="http://localhost:9090/rules" target="_blank">View Rules Configuration</a> - See all loaded rule groups and alerts',
+                '3. <a href="http://localhost:9090/alerts" target="_blank">Monitor Active Alerts</a> - Check firing and pending alerts',
+                '4. Look for Argus-specific rules in the test results - they should be detected automatically',
+                '5. Test rule evaluation by generating system load (CPU/Memory alerts fire at >50% usage)',
+                '6. Verify alerts API accessibility and alert state tracking'
             ],
             'Metrics Scale Test': [
-                '1. <a href="http://localhost:9090" target="_blank">Open Prometheus</a>',
-                '2. Go to Graph tab and search for "argus" or "performance_test"',
-                '3. Look for custom metrics like "custom_metric" and "http_requests_total"',
-                '4. Check the time range to see the generated data points'
+                '1. <strong>Important:</strong> Prometheus must be configured to scrape Argus metrics at <code>http://localhost:3001/metrics</code>',
+                '2. Verify metrics are exposed: <a href="http://localhost:3001/metrics" target="_blank">Check Argus /metrics endpoint</a>',
+                '3. <a href="http://localhost:9090" target="_blank">Open Prometheus</a> → Go to Graph tab',
+                '4. Try these exact queries (copy and paste):',
+                '   • <code>custom_business_metric{type="performance_test"}</code> (main test metric)',
+                '   • <code>http_requests_total{method="GET", endpoint="/api/scale-test"}</code> (GET requests)', 
+                '   • <code>http_requests_total{endpoint="/api/scale-test"}</code> (all HTTP requests)', 
+                '   • <code>rate(http_requests_total{endpoint="/api/scale-test"}[5m])</code> (request rate)',
+                '5. Set time range to "Last 5 minutes" or "Last 15 minutes"',
+                '6. <strong>If no data:</strong> Add this to your prometheus.yml scrape_configs: <code>- job_name: "argus" static_configs: - targets: ["localhost:3001"]</code>'
             ],
             'Logs Scale Test': [
                 '1. <a href="http://localhost:3000" target="_blank">Open Grafana</a>',

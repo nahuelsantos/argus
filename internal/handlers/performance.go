@@ -37,7 +37,7 @@ func NewPerformanceHandlers(loggingService *services.LoggingService, tracingServ
 type PerformanceTestResult struct {
 	TestType       string            `json:"test_type"`
 	Status         string            `json:"status"`
-	Duration       time.Duration     `json:"duration_ms"`
+	Duration       float64           `json:"duration_seconds"`
 	ItemsGenerated int               `json:"items_generated"`
 	ItemsPerSecond float64           `json:"items_per_second"`
 	Details        map[string]string `json:"details,omitempty"`
@@ -115,7 +115,7 @@ func (ph *PerformanceHandlers) TestMetricsScale(w http.ResponseWriter, r *http.R
 	result := PerformanceTestResult{
 		TestType:       "metrics_scale",
 		Status:         "completed",
-		Duration:       testDuration,
+		Duration:       testDuration.Seconds(),
 		ItemsGenerated: int(totalGenerated),
 		ItemsPerSecond: float64(totalGenerated) / testDuration.Seconds(),
 		Details: map[string]string{
@@ -245,7 +245,7 @@ func (ph *PerformanceHandlers) TestLogsScale(w http.ResponseWriter, r *http.Requ
 	result := PerformanceTestResult{
 		TestType:       "logs_scale",
 		Status:         "completed",
-		Duration:       testDuration,
+		Duration:       testDuration.Seconds(),
 		ItemsGenerated: int(totalGenerated),
 		ItemsPerSecond: float64(totalGenerated) / testDuration.Seconds(),
 		Details: map[string]string{
@@ -336,7 +336,7 @@ func (ph *PerformanceHandlers) TestTracesScale(w http.ResponseWriter, r *http.Re
 	result := PerformanceTestResult{
 		TestType:       "traces_scale",
 		Status:         "completed",
-		Duration:       testDuration,
+		Duration:       testDuration.Seconds(),
 		ItemsGenerated: int(totalGenerated),
 		ItemsPerSecond: float64(totalGenerated) / testDuration.Seconds(),
 		Details: map[string]string{
@@ -426,7 +426,7 @@ func (ph *PerformanceHandlers) TestDashboardLoad(w http.ResponseWriter, r *http.
 	result := PerformanceTestResult{
 		TestType:       "dashboard_load",
 		Status:         "completed",
-		Duration:       testDuration,
+		Duration:       testDuration.Seconds(),
 		ItemsGenerated: int(totalRequests),
 		ItemsPerSecond: float64(totalRequests) / testDuration.Seconds(),
 		Details: map[string]string{
@@ -508,10 +508,11 @@ func (ph *PerformanceHandlers) TestResourceUsage(w http.ResponseWriter, r *http.
 		NetworkBytesRx: int64(rand.Intn(1000000)),
 	}
 
+	testDuration := time.Since(start)
 	result := PerformanceTestResult{
 		TestType:       "resource_usage",
 		Status:         "completed",
-		Duration:       time.Since(start),
+		Duration:       testDuration.Seconds(),
 		ItemsGenerated: len(resourceData),
 		ResourceUsage:  mockResourceUsage,
 		Details: map[string]string{
@@ -572,10 +573,11 @@ func (ph *PerformanceHandlers) TestStorageLimits(w http.ResponseWriter, r *http.
 	storageData["retention_policy_days"] = 30                                    // Mock retention
 	storageData["compression_ratio"] = fmt.Sprintf("%.2f", 2.5+rand.Float64()*2) // 2.5-4.5x
 
+	testDuration := time.Since(start)
 	result := PerformanceTestResult{
 		TestType:       "storage_limits",
 		Status:         "completed",
-		Duration:       time.Since(start),
+		Duration:       testDuration.Seconds(),
 		ItemsGenerated: len(storageData),
 		Details: map[string]string{
 			"storage_components": "3",

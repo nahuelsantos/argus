@@ -533,58 +533,40 @@ func (ih *IntegrationHandlers) TestGrafanaDashboards(w http.ResponseWriter, r *h
 	json.NewEncoder(w).Encode(result)
 }
 
-// Test Alert Rules Configuration
+// Test Alert Rules Configuration - Verify rules are loaded and working
 func (ih *IntegrationHandlers) TestAlertRules(w http.ResponseWriter, r *http.Request) {
-	ih.loggingService.LogWithContext(0, r.Context(), "Loading Argus alert rules into Prometheus...")
-
-	// Load alert rules config
-	rulesPath := "internal/configs/prometheus/argus-alert-rules.yml"
-	rulesData, err := os.ReadFile(rulesPath)
-	if err != nil {
-		result := map[string]interface{}{
-			"status":    "error",
-			"message":   "Cannot load alert rules configuration",
-			"error":     err.Error(),
-			"timestamp": time.Now(),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
-		return
-	}
+	ih.loggingService.LogWithContext(0, r.Context(), "Testing Prometheus alert rules configuration...")
 
 	// Get settings for Prometheus connection
 	settings := getGlobalSettings()
 	prometheusConfig := settings.Prometheus
 
-	// First, check current rules in Prometheus
-	checkURL := prometheusConfig.URL + "/api/v1/rules"
-
 	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get(checkURL)
+
+	// Test 1: Check if Prometheus rules API is accessible
+	rulesURL := prometheusConfig.URL + "/api/v1/rules"
+	rulesResp, err := client.Get(rulesURL)
 	if err != nil {
 		result := map[string]interface{}{
 			"status":         "connection_error",
 			"message":        "Cannot connect to Prometheus rules API",
 			"error":          err.Error(),
 			"prometheus_url": prometheusConfig.URL,
-			"instructions": []string{
-				"1. Ensure Prometheus is running at " + prometheusConfig.URL,
-				"2. Check your Prometheus configuration",
-				"3. Verify network connectivity",
-			},
-			"timestamp": time.Now(),
+			"test_results":   []string{"❌ Connection to Prometheus failed"},
+			"timestamp":      time.Now(),
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(result)
 		return
 	}
-	defer resp.Body.Close()
+	defer rulesResp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if rulesResp.StatusCode != 200 {
 		result := map[string]interface{}{
 			"status":         "api_error",
-			"message":        fmt.Sprintf("Prometheus rules API failed: HTTP %d", resp.StatusCode),
+			"message":        fmt.Sprintf("Prometheus rules API failed: HTTP %d", rulesResp.StatusCode),
 			"prometheus_url": prometheusConfig.URL,
+			"test_results":   []string{"❌ Rules API returned error"},
 			"timestamp":      time.Now(),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -592,200 +574,185 @@ func (ih *IntegrationHandlers) TestAlertRules(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	rulesBody, err := io.ReadAll(rulesResp.Body)
 	if err != nil {
 		result := map[string]interface{}{
-			"status":    "error",
-			"message":   "Cannot read Prometheus rules response",
-			"error":     err.Error(),
-			"timestamp": time.Now(),
+			"status":       "error",
+			"message":      "Cannot read Prometheus rules response",
+			"error":        err.Error(),
+			"test_results": []string{"❌ Failed to read rules response"},
+			"timestamp":    time.Now(),
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(result)
 		return
 	}
 
-	// Parse and count rules
-	bodyStr := string(body)
-	totalRuleGroups := strings.Count(bodyStr, `"name":`)
-	totalAlertRules := strings.Count(bodyStr, `"alert":`)
+	// Test 2: Check alerts endpoint
+	alertsURL := prometheusConfig.URL + "/api/v1/alerts"
+	alertsResp, err := client.Get(alertsURL)
+	var alertsBody []byte
+	alertsAccessible := false
+
+	if err == nil && alertsResp.StatusCode == 200 {
+		alertsBody, _ = io.ReadAll(alertsResp.Body)
+		alertsAccessible = true
+		alertsResp.Body.Close()
+	} else if alertsResp != nil {
+		alertsResp.Body.Close()
+	}
+
+	// Parse rules and alerts data
+	rulesBodyStr := string(rulesBody)
+	alertsBodyStr := string(alertsBody)
+
+	// Count total rules and groups
+	totalRuleGroups := strings.Count(rulesBodyStr, `"name":`)
+	totalAlertRules := strings.Count(rulesBodyStr, `"alert":`)
+	totalRecordingRules := strings.Count(rulesBodyStr, `"record":`)
 
 	// Check for Argus-specific rules
-	argusRules := strings.Count(bodyStr, "argus")
+	argusRules := strings.Count(rulesBodyStr, "argus")
+	argusAlertRules := strings.Count(rulesBodyStr, `"alert":"argus`) + strings.Count(rulesBodyStr, `"alert": "argus`)
 
-	// Count rules in our config
-	configStr := string(rulesData)
-	configGroups := strings.Count(configStr, "name:")
-	configAlerts := strings.Count(configStr, "alert:")
+	// Count active alerts
+	activeAlerts := strings.Count(alertsBodyStr, `"state":"firing"`)
+	pendingAlerts := strings.Count(alertsBodyStr, `"state":"pending"`)
+	totalAlerts := strings.Count(alertsBodyStr, `"state":`)
 
-	var status, message string
-	var instructions []string
-	var actionsCompleted []string
+	// Test results array
+	var testResults []string
+	var status string
+	var message string
 
+	// Test 1: Rules API accessibility
+	testResults = append(testResults, "✅ Prometheus rules API accessible")
+
+	// Test 2: Alert rules existence
+	if totalAlertRules > 0 {
+		testResults = append(testResults, fmt.Sprintf("✅ Found %d alert rules in %d groups", totalAlertRules, totalRuleGroups))
+	} else {
+		testResults = append(testResults, "❌ No alert rules found")
+	}
+
+	// Test 3: Recording rules existence (optional)
+	if totalRecordingRules > 0 {
+		testResults = append(testResults, fmt.Sprintf("✅ Found %d recording rules", totalRecordingRules))
+	}
+
+	// Test 4: Argus-specific rules
 	if argusRules > 0 {
-		status = "loaded"
-		message = "✅ Argus alert rules are already loaded in Prometheus!"
-		instructions = []string{
-			"1. ✅ Rules are active - check alerts at " + prometheusConfig.URL + "/alerts",
-			"2. ✅ View rule status at " + prometheusConfig.URL + "/rules",
-			"3. Generate some load to test CPU/Memory alerts (they fire at >50% usage)",
-			"4. Run some tests to trigger test failure alerts",
-		}
-		actionsCompleted = []string{
-			"✅ Found " + strconv.Itoa(argusRules) + " Argus rules already loaded",
-			"✅ Rules are active and monitoring",
-			"✅ Alert endpoints are accessible",
+		testResults = append(testResults, fmt.Sprintf("✅ Found %d Argus-specific rules", argusRules))
+		if argusAlertRules > 0 {
+			testResults = append(testResults, fmt.Sprintf("✅ Found %d Argus alert rules", argusAlertRules))
 		}
 	} else {
-		// Try to automatically load rules
-		rulesDir := "/tmp/prometheus-rules"
-		rulesFile := rulesDir + "/argus-alert-rules.yml"
+		testResults = append(testResults, "⚠️ No Argus-specific rules found")
+	}
 
-		// Create rules directory
-		if err := os.MkdirAll(rulesDir, 0755); err != nil {
-			status = "auto_load_failed"
-			message = "❌ Could not create rules directory for auto-loading"
-			instructions = []string{
-				"1. Manual setup required - copy rules YAML below",
-				"2. Add to your prometheus.yml rule_files section",
-				"3. Restart Prometheus or reload config",
-			}
+	// Test 5: Alerts endpoint accessibility
+	if alertsAccessible {
+		testResults = append(testResults, "✅ Prometheus alerts API accessible")
+
+		// Test 6: Active alerts
+		if totalAlerts > 0 {
+			testResults = append(testResults, fmt.Sprintf("✅ Found %d total alerts (%d firing, %d pending)", totalAlerts, activeAlerts, pendingAlerts))
 		} else {
-			// Write rules file
-			if err := os.WriteFile(rulesFile, rulesData, 0644); err != nil {
-				status = "auto_load_failed"
-				message = "❌ Could not write rules file for auto-loading"
-			} else {
-				// Try multiple common Prometheus rules directories
-				prometheusDirs := []string{
-					"/etc/prometheus/rules/",
-					"/opt/prometheus/rules/",
-					"/usr/local/etc/prometheus/rules/",
-					"/prometheus/rules/",
-				}
+			testResults = append(testResults, "ℹ️ No active alerts (this is normal if system is healthy)")
+		}
+	} else {
+		testResults = append(testResults, "❌ Prometheus alerts API not accessible")
+	}
 
-				var rulesInstalled bool
-				var installedPath string
+	// Test 7: Rule evaluation check (check if rules are being evaluated)
+	if strings.Contains(rulesBodyStr, `"evaluationTime":`) || strings.Contains(rulesBodyStr, `"lastEvaluation":`) {
+		testResults = append(testResults, "✅ Rules are being evaluated by Prometheus")
+	} else {
+		testResults = append(testResults, "⚠️ Cannot verify rule evaluation status")
+	}
 
-				for _, dir := range prometheusDirs {
-					if _, err := os.Stat(dir); err == nil {
-						// Directory exists, try to copy rules file
-						targetFile := dir + "argus-alert-rules.yml"
-						if copyErr := copyFile(rulesFile, targetFile); copyErr == nil {
-							rulesInstalled = true
-							installedPath = targetFile
-							break
-						}
-					}
-				}
+	// Determine overall status
+	hasRules := totalAlertRules > 0
+	hasArgusRules := argusRules > 0
+	hasAlertsAPI := alertsAccessible
 
-				// Try to reload Prometheus configuration
-				reloadURL := prometheusConfig.URL + "/-/reload"
-				reloadReq, err := http.NewRequest("POST", reloadURL, nil)
-				if err == nil {
-					if prometheusConfig.Username != "" {
-						reloadReq.SetBasicAuth(prometheusConfig.Username, prometheusConfig.Password)
-					}
+	if hasRules && hasArgusRules && hasAlertsAPI {
+		status = "healthy"
+		message = "✅ Alert rules are properly configured and functioning"
+	} else if hasRules && hasAlertsAPI {
+		status = "partial"
+		message = "⚠️ Basic alert rules working, but Argus-specific rules not found"
+	} else if hasRules {
+		status = "degraded"
+		message = "⚠️ Rules exist but alerts API not accessible"
+	} else {
+		status = "failed"
+		message = "❌ No alert rules configured in Prometheus"
+	}
 
-					reloadResp, reloadErr := client.Do(reloadReq)
-					if reloadErr == nil && reloadResp.StatusCode == 200 {
-						reloadResp.Body.Close()
+	// Generate instructions based on status
+	var instructions []string
+	var recommendations []string
 
-						if rulesInstalled {
-							status = "auto_loaded"
-							message = "✅ Argus alert rules automatically loaded into Prometheus!"
-							instructions = []string{
-								"1. ✅ Rules auto-loaded - check alerts at " + prometheusConfig.URL + "/alerts",
-								"2. ✅ View rule status at " + prometheusConfig.URL + "/rules",
-								"3. Generate load to test CPU/Memory alerts (fire at >50% usage)",
-								"4. Run tests to trigger test failure alerts",
-							}
-							actionsCompleted = []string{
-								"✅ Created rules file: " + rulesFile,
-								"✅ Copied to Prometheus rules directory: " + installedPath,
-								"✅ Reloaded Prometheus configuration",
-								"✅ Alert rules are now active",
-							}
-						} else {
-							status = "file_created"
-							message = "✅ Rules file created, Prometheus reloaded, but may need manual rule_files configuration"
-							instructions = []string{
-								"1. ✅ Prometheus reload successful",
-								"2. Rules file available at: " + rulesFile,
-								"3. Add to prometheus.yml: rule_files: ['" + rulesFile + "']",
-								"4. Or copy to your Prometheus rules directory",
-								"5. Check " + prometheusConfig.URL + "/rules after configuration",
-							}
-							actionsCompleted = []string{
-								"✅ Created rules file: " + rulesFile,
-								"✅ Prometheus reload successful",
-								"⚠️ May need manual rule_files configuration",
-							}
-						}
-					} else {
-						if reloadResp != nil {
-							reloadResp.Body.Close()
-						}
-						status = "reload_failed"
-						message = "⚠️ Rules file created but Prometheus reload failed"
-						instructions = []string{
-							"1. Rules file created at: " + rulesFile,
-							"2. Add to prometheus.yml: rule_files: ['" + rulesFile + "']",
-							"3. Restart Prometheus manually",
-							"4. Or run: curl -X POST " + prometheusConfig.URL + "/-/reload",
-						}
-						actionsCompleted = []string{
-							"✅ Created rules file: " + rulesFile,
-							"❌ Prometheus reload failed (may need manual restart)",
-						}
-						if rulesInstalled {
-							actionsCompleted = append(actionsCompleted, "✅ Copied to Prometheus directory: "+installedPath)
-						}
-					}
-				} else {
-					status = "reload_failed"
-					message = "⚠️ Rules file created but reload request failed"
-					instructions = []string{
-						"1. Rules file created at: " + rulesFile,
-						"2. Add to prometheus.yml rule_files section",
-						"3. Restart Prometheus manually",
-					}
-					actionsCompleted = []string{
-						"✅ Created rules file: " + rulesFile,
-						"❌ Could not send reload request to Prometheus",
-					}
-					if rulesInstalled {
-						actionsCompleted = append(actionsCompleted, "✅ Copied to Prometheus directory: "+installedPath)
-					}
-				}
-			}
+	if status == "healthy" {
+		instructions = []string{
+			"1. ✅ Check active alerts: " + prometheusConfig.URL + "/alerts",
+			"2. ✅ View rule status: " + prometheusConfig.URL + "/rules",
+			"3. ✅ Generate load to test CPU/Memory alerts",
+			"4. ✅ Monitor alert firing behavior",
+		}
+		recommendations = []string{
+			"💡 Generate system load to test resource monitoring alerts",
+			"💡 Run performance tests to trigger test failure alerts",
+			"💡 Check Grafana for alert notifications",
+		}
+	} else if status == "partial" {
+		instructions = []string{
+			"1. Check rule configuration in prometheus.yml",
+			"2. Verify Argus rules are properly loaded",
+			"3. Restart Prometheus if needed",
+			"4. Check " + prometheusConfig.URL + "/rules for all loaded rules",
+		}
+		recommendations = []string{
+			"💡 Add Argus alert rules to your prometheus.yml configuration",
+			"💡 Ensure rule_files section includes Argus rules",
+		}
+	} else {
+		instructions = []string{
+			"1. Check prometheus.yml configuration",
+			"2. Add rule_files section with alert rules",
+			"3. Restart Prometheus service",
+			"4. Verify rules load at " + prometheusConfig.URL + "/rules",
+		}
+		recommendations = []string{
+			"💡 Alert rules need to be configured in Prometheus",
+			"💡 Add rule_files to prometheus.yml configuration",
 		}
 	}
 
 	result := map[string]interface{}{
-		"status":            status,
-		"message":           message,
-		"rule_groups_total": totalRuleGroups,
-		"alert_rules_total": totalAlertRules,
-		"argus_rules_found": argusRules > 0,
-		"config_details": map[string]interface{}{
-			"rule_groups": configGroups,
-			"alert_rules": configAlerts,
-			"categories": []string{
-				"System Resource Monitoring (CPU/Memory >50%)",
-				"Test Failure Detection",
-				"LGTM Stack Health",
-				"API Performance Monitoring",
-			},
-			"rules_file": rulesPath,
+		"status":  status,
+		"message": message,
+		"rule_summary": map[string]interface{}{
+			"total_groups":      totalRuleGroups,
+			"alert_rules":       totalAlertRules,
+			"recording_rules":   totalRecordingRules,
+			"argus_rules":       argusRules,
+			"argus_alert_rules": argusAlertRules,
 		},
-		"prometheus_url":    prometheusConfig.URL,
-		"alerts_url":        prometheusConfig.URL + "/alerts",
-		"rules_url":         prometheusConfig.URL + "/rules",
-		"instructions":      instructions,
-		"actions_completed": actionsCompleted,
-		"rules_yaml":        string(rulesData),
-		"timestamp":         time.Now(),
+		"alert_summary": map[string]interface{}{
+			"api_accessible": alertsAccessible,
+			"total_alerts":   totalAlerts,
+			"firing_alerts":  activeAlerts,
+			"pending_alerts": pendingAlerts,
+		},
+		"test_results":    testResults,
+		"instructions":    instructions,
+		"recommendations": recommendations,
+		"prometheus_url":  prometheusConfig.URL,
+		"alerts_url":      prometheusConfig.URL + "/alerts",
+		"rules_url":       prometheusConfig.URL + "/rules",
+		"timestamp":       time.Now(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

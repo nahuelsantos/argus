@@ -321,7 +321,7 @@ func (bh *BasicHandlers) LGTMStatusHandler(w http.ResponseWriter, r *http.Reques
 
 func (bh *BasicHandlers) checkServiceHealth(url string) string {
 	client := &http.Client{
-		Timeout: 2 * time.Second,
+		Timeout: 8 * time.Second,
 	}
 
 	resp, err := client.Get(url)
