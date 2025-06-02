@@ -1,0 +1,29 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Argus
+
+## Introduction
+**Argus** is a comprehensive testing and validation tool for **LGTM** (Loki, Grafana, Tempo, Prometheus) observability stacks. Named after the Greek giant with a hundred eyes, Argus watches over your monitoring infrastructure to ensure everything works as expected.
+
+
+## Best Practices
+* Has to be secure
+* Has to use latest versions when possible
+* Has to follow best industry practices and standards
+* Has to be simple
+* Has to be reusable for anyone that has LGTM stack 
+* It main goal is to feed LGTM stack with syntethic data
+* It feeds syntetic data to test LGTM stack
+* It provides a makefile for development purposes.
+* It has minimal and concise documentation.
+* It is modular, alowing the user to enable and disable websites, services and apis easily
+* It has a REST API that can be used via curl 
+* It has an intuitive UI in HTMX to be more user friendly
+
+
+## Conclusion
+
+By following these guidelines, you can set up a robust tool to test your monitoring stack, ensuring best practices are adhered to for a maintainable and efficient codebase. Building scalable backend systems with Go requires a deep understanding of both the language and modern architectural patterns. By following the best practices outlined in this guide, you can create backend systems that are not only scalable but also maintainable, secure, and efficient. Always consider the trade-offs between different approaches and continuously monitor and optimize your systems to meet the demands of your users.
