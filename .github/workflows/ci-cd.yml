@@ -79,6 +79,12 @@ jobs:
             VERSION="v0.1.0-dev.${GITHUB_SHA::8}"
             IS_RELEASE=false
           fi
+          
+          # Ensure version starts with 'v'
+          if [[ ! $VERSION =~ ^v ]]; then
+            VERSION="v${VERSION}"
+          fi
+          
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "is_release=$IS_RELEASE" >> $GITHUB_OUTPUT
           echo "short_sha=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
@@ -102,9 +108,13 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=${{ steps.version.outputs.version }},enable={{is_default_branch}}
             type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix={{branch}}-
+            type=raw,value=${{ steps.version.outputs.version }},enable=${{ startsWith(github.ref, 'refs/tags/') }}
+          labels: |
+            org.opencontainers.image.title=Argus
+            org.opencontainers.image.description=LGTM Stack Validator
+            org.opencontainers.image.vendor=nahuelsantos
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
