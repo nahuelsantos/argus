@@ -1,10 +1,10 @@
 # Build stage
 FROM golang:1.21-alpine AS builder
 
-# Build arguments
-ARG VERSION=v0.0.1
-ARG BUILD_TIME
-ARG GIT_COMMIT
+# Build arguments (optional)
+ARG VERSION=dev
+ARG BUILD_TIME=unknown
+ARG GIT_COMMIT=unknown
 
 # Set working directory
 WORKDIR /app
@@ -19,7 +19,7 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application with version information
+# Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags "-X 'github.com/nahuelsantos/argus/internal/config.Version=${VERSION}' \
               -X 'github.com/nahuelsantos/argus/internal/config.BuildTime=${BUILD_TIME}' \
