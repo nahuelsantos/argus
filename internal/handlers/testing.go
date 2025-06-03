@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"github.com/nahuelsantos/argus/internal/services"
+	"github.com/nahuelsantos/argus/internal/utils"
 )
 
 // TestingHandlers contains testing handlers for LGTM stack validation
@@ -84,7 +85,7 @@ func (th *TestingHandlers) GenerateJSONLogsHandler(w http.ResponseWriter, r *htt
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "JSON logs generated for Loki testing")
 }
@@ -138,7 +139,7 @@ func (th *TestingHandlers) GenerateUnstructuredLogsHandler(w http.ResponseWriter
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Unstructured logs generated for Loki testing")
 }
@@ -191,7 +192,7 @@ func (th *TestingHandlers) GenerateMixedLogsHandler(w http.ResponseWriter, r *ht
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Mixed format logs generated for Loki testing")
 }
@@ -242,7 +243,7 @@ stripe.error.CardError: Your card was declined
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Multi-line stack traces generated for Loki testing")
 }
@@ -292,7 +293,7 @@ func (th *TestingHandlers) SimulateWordPressServiceHandler(w http.ResponseWriter
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "WordPress service simulation completed")
 }
@@ -360,7 +361,7 @@ func (th *TestingHandlers) SimulateNextJSServiceHandler(w http.ResponseWriter, r
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Next.js service simulation completed")
 }
@@ -429,7 +430,7 @@ func (th *TestingHandlers) SimulateCrossServiceTracingHandler(w http.ResponseWri
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Cross-service tracing simulation completed")
 }
@@ -517,7 +518,7 @@ func (th *TestingHandlers) TestServiceDiscoveryHandler(w http.ResponseWriter, r 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Service discovery testing completed")
 }
@@ -609,7 +610,7 @@ func (th *TestingHandlers) TestReverseProxyHandler(w http.ResponseWriter, r *htt
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Reverse proxy testing completed")
 }
@@ -705,7 +706,7 @@ func (th *TestingHandlers) TestSSLMonitoringHandler(w http.ResponseWriter, r *ht
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "SSL certificate monitoring completed")
 }
@@ -803,7 +804,7 @@ func (th *TestingHandlers) TestDomainHealthHandler(w http.ResponseWriter, r *htt
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Domain health monitoring completed")
 }

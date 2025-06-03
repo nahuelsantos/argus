@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -18,6 +17,7 @@ import (
 	"github.com/nahuelsantos/argus/internal/metrics"
 	"github.com/nahuelsantos/argus/internal/middleware"
 	"github.com/nahuelsantos/argus/internal/services"
+	"github.com/nahuelsantos/argus/internal/utils"
 )
 
 // PerformanceHandlers contains LGTM stack performance testing handlers
@@ -132,7 +132,7 @@ func (ph *PerformanceHandlers) TestMetricsScale(w http.ResponseWriter, r *http.R
 		zap.Float64("items_per_second", result.ItemsPerSecond))
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	utils.EncodeJSON(w, result)
 }
 
 // Test Logs Scale - Generate high-volume logs
@@ -262,7 +262,7 @@ func (ph *PerformanceHandlers) TestLogsScale(w http.ResponseWriter, r *http.Requ
 		zap.Float64("items_per_second", result.ItemsPerSecond))
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	utils.EncodeJSON(w, result)
 }
 
 // Test Traces Scale - Generate high-volume traces
@@ -353,7 +353,7 @@ func (ph *PerformanceHandlers) TestTracesScale(w http.ResponseWriter, r *http.Re
 		zap.Float64("items_per_second", result.ItemsPerSecond))
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	utils.EncodeJSON(w, result)
 }
 
 // Test Dashboard Load - Stress test Grafana dashboards
@@ -445,7 +445,7 @@ func (ph *PerformanceHandlers) TestDashboardLoad(w http.ResponseWriter, r *http.
 		zap.Float64("success_rate", successRate))
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	utils.EncodeJSON(w, result)
 }
 
 // Test Resource Usage - Monitor LGTM stack resource consumption
@@ -530,7 +530,7 @@ func (ph *PerformanceHandlers) TestResourceUsage(w http.ResponseWriter, r *http.
 	ph.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Resource usage test completed")
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	utils.EncodeJSON(w, result)
 }
 
 // Test Storage Limits - Test LGTM stack storage and retention capabilities
@@ -594,5 +594,5 @@ func (ph *PerformanceHandlers) TestStorageLimits(w http.ResponseWriter, r *http.
 	ph.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Storage limits test completed")
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	utils.EncodeJSON(w, result)
 }

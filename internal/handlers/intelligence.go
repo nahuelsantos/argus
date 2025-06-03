@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -13,13 +12,14 @@ import (
 	"github.com/nahuelsantos/argus/internal/metrics"
 	"github.com/nahuelsantos/argus/internal/models"
 	"github.com/nahuelsantos/argus/internal/services"
+	"github.com/nahuelsantos/argus/internal/utils"
 )
 
 // writeJSON writes a JSON response
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	utils.EncodeJSON(w, data)
 }
 
 // IntelligenceHandler handles intelligence endpoints
@@ -101,14 +101,12 @@ func (h *IntelligenceHandler) TestAnomalyDetection(w http.ResponseWriter, r *htt
 
 	// Update metrics
 	for _, score := range scores {
-		severity := "normal"
 		if score.IsAnomaly {
+			severity := "low" // default for anomalies
 			if score.Score > 0.8 {
 				severity = "high"
 			} else if score.Score > 0.5 {
 				severity = "medium"
-			} else {
-				severity = "low"
 			}
 			metrics.AnomaliesDetectedTotal.WithLabelValues(
 				"statistical", // model type from score.ModelID lookup

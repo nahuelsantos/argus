@@ -16,6 +16,7 @@ import (
 	"github.com/nahuelsantos/argus/internal/metrics"
 	"github.com/nahuelsantos/argus/internal/services"
 	"github.com/nahuelsantos/argus/internal/types"
+	"github.com/nahuelsantos/argus/internal/utils"
 )
 
 // BasicHandlers contains basic HTTP handlers
@@ -54,7 +55,7 @@ func (bh *BasicHandlers) HealthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(health)
+	utils.EncodeJSON(w, health)
 
 	bh.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Health check performed")
 }
@@ -91,7 +92,7 @@ func (bh *BasicHandlers) GenerateMetricsHandler(w http.ResponseWriter, r *http.R
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	bh.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Metrics generated",
 		zap.Int("count", count))
@@ -139,7 +140,7 @@ func (bh *BasicHandlers) GenerateLogsHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 }
 
 // GenerateErrorHandler generates sample errors
@@ -179,7 +180,7 @@ func (bh *BasicHandlers) GenerateErrorHandler(w http.ResponseWriter, r *http.Req
 		"request_id": r.Header.Get("X-Request-ID"),
 	}
 
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 }
 
 // CPULoadHandler simulates CPU load
@@ -222,7 +223,7 @@ func (bh *BasicHandlers) CPULoadHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	bh.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "CPU load simulation started",
 		zap.Duration("duration", duration), zap.Int("intensity", intensity))
@@ -277,7 +278,7 @@ func (bh *BasicHandlers) MemoryLoadHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	bh.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Memory load simulation started",
 		zap.Int("size_mb", sizeMB), zap.Duration("duration", duration))
@@ -316,7 +317,7 @@ func (bh *BasicHandlers) LGTMStatusHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(status)
+	utils.EncodeJSON(w, status)
 }
 
 func (bh *BasicHandlers) checkServiceHealth(url string) string {
@@ -358,7 +359,7 @@ func (bh *BasicHandlers) getSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(globalSettings)
+	utils.EncodeJSON(w, globalSettings)
 }
 
 func (bh *BasicHandlers) saveSettings(w http.ResponseWriter, r *http.Request) {
@@ -377,7 +378,7 @@ func (bh *BasicHandlers) saveSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 }
 
 // TestConnectionHandler tests connection to specific LGTM services
@@ -399,7 +400,7 @@ func (bh *BasicHandlers) TestConnectionHandler(w http.ResponseWriter, r *http.Re
 	result := bh.testServiceConnection(service, config)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	utils.EncodeJSON(w, result)
 }
 
 func (bh *BasicHandlers) testServiceConnection(service string, config types.ServiceConfig) map[string]interface{} {

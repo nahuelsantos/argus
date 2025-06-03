@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/nahuelsantos/argus/internal/services"
 	"github.com/nahuelsantos/argus/internal/types"
+	"github.com/nahuelsantos/argus/internal/utils"
 )
 
 // Helper function to get global settings with defaults
@@ -111,7 +111,7 @@ func (ih *IntegrationHandlers) TestLGTMIntegration(w http.ResponseWriter, r *htt
 	ih.loggingService.LogWithContext(0, r.Context(), "LGTM integration test completed")
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(summary)
+	utils.EncodeJSON(w, summary)
 }
 
 // Test Grafana Datasources
@@ -397,7 +397,7 @@ func (ih *IntegrationHandlers) TestGrafanaDashboards(w http.ResponseWriter, r *h
 			"timestamp": time.Now(),
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
+		utils.EncodeJSON(w, result)
 		return
 	}
 
@@ -418,7 +418,7 @@ func (ih *IntegrationHandlers) TestGrafanaDashboards(w http.ResponseWriter, r *h
 			"timestamp": time.Now(),
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
+		utils.EncodeJSON(w, result)
 		return
 	}
 
@@ -458,7 +458,7 @@ func (ih *IntegrationHandlers) TestGrafanaDashboards(w http.ResponseWriter, r *h
 			"timestamp":      time.Now(),
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
+		utils.EncodeJSON(w, result)
 		return
 	}
 	defer resp.Body.Close()
@@ -530,7 +530,7 @@ func (ih *IntegrationHandlers) TestGrafanaDashboards(w http.ResponseWriter, r *h
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	utils.EncodeJSON(w, result)
 }
 
 // Test Alert Rules Configuration - Verify rules are loaded and working
@@ -556,7 +556,7 @@ func (ih *IntegrationHandlers) TestAlertRules(w http.ResponseWriter, r *http.Req
 			"timestamp":      time.Now(),
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
+		utils.EncodeJSON(w, result)
 		return
 	}
 	defer rulesResp.Body.Close()
@@ -570,7 +570,7 @@ func (ih *IntegrationHandlers) TestAlertRules(w http.ResponseWriter, r *http.Req
 			"timestamp":      time.Now(),
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
+		utils.EncodeJSON(w, result)
 		return
 	}
 
@@ -584,7 +584,7 @@ func (ih *IntegrationHandlers) TestAlertRules(w http.ResponseWriter, r *http.Req
 			"timestamp":    time.Now(),
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
+		utils.EncodeJSON(w, result)
 		return
 	}
 
@@ -756,23 +756,5 @@ func (ih *IntegrationHandlers) TestAlertRules(w http.ResponseWriter, r *http.Req
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
-}
-
-// copyFile copies a file from src to dst
-func copyFile(src, dst string) error {
-	sourceFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer sourceFile.Close()
-
-	destFile, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer destFile.Close()
-
-	_, err = io.Copy(destFile, sourceFile)
-	return err
+	utils.EncodeJSON(w, result)
 }

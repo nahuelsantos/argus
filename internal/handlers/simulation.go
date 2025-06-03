@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"github.com/nahuelsantos/argus/internal/services"
+	"github.com/nahuelsantos/argus/internal/utils"
 )
 
 // SimulationHandlers handles service simulation endpoints
@@ -82,7 +82,7 @@ func (h *SimulationHandlers) SimulateWebServiceHandler(w http.ResponseWriter, r 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 }
 
 // SimulateAPIServiceHandler simulates REST API services
@@ -190,7 +190,7 @@ func (h *SimulationHandlers) SimulateAPIServiceHandler(w http.ResponseWriter, r 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 }
 
 // SimulateDatabaseServiceHandler simulates database-heavy applications
@@ -263,7 +263,7 @@ func (h *SimulationHandlers) SimulateDatabaseServiceHandler(w http.ResponseWrite
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 }
 
 // SimulateStaticSiteHandler simulates static file serving (CDN-like)
@@ -375,7 +375,7 @@ func (h *SimulationHandlers) SimulateStaticSiteHandler(w http.ResponseWriter, r 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 }
 
 // SimulateMicroserviceHandler simulates microservice communication patterns
@@ -460,5 +460,5 @@ func (h *SimulationHandlers) SimulateMicroserviceHandler(w http.ResponseWriter, 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 }

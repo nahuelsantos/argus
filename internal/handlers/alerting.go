@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/nahuelsantos/argus/internal/models"
 	"github.com/nahuelsantos/argus/internal/services"
+	"github.com/nahuelsantos/argus/internal/utils"
 )
 
 // AlertingHandlers contains alerting and incident management handlers
@@ -57,7 +57,7 @@ func (ah *AlertingHandlers) TestAlertRulesHandler(w http.ResponseWriter, r *http
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	ah.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Alert rules tested")
 }
@@ -125,7 +125,7 @@ func (ah *AlertingHandlers) TestFireAlertHandler(w http.ResponseWriter, r *http.
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	ah.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Test alert fired")
 }
@@ -193,7 +193,7 @@ func (ah *AlertingHandlers) TestIncidentManagementHandler(w http.ResponseWriter,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	ah.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Incident management tested")
 }
@@ -246,7 +246,7 @@ func (ah *AlertingHandlers) TestNotificationChannelsHandler(w http.ResponseWrite
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	ah.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Notification channels tested")
 }
@@ -277,7 +277,7 @@ func (ah *AlertingHandlers) GetActiveAlertsHandler(w http.ResponseWriter, r *htt
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	ah.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Active alerts retrieved")
 }
@@ -349,7 +349,7 @@ func (ah *AlertingHandlers) GetActiveIncidentsHandler(w http.ResponseWriter, r *
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	utils.EncodeJSON(w, response)
 
 	ah.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Active incidents retrieved")
 }
