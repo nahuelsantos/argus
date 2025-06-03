@@ -1,14 +1,11 @@
 package config
 
 import (
-	"embed"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 )
-
-//go:embed VERSION
-var versionFS embed.FS
 
 // Build-time variables (set via ldflags)
 var (
@@ -72,23 +69,42 @@ func GetTracingConfig() *TracingConfig {
 	}
 }
 
-// GetVersion returns the version, preferring build-time injection, then env var, then VERSION file
+// GetVersion returns the version using modern git-based approach
 func GetVersion() string {
-	// 1. Build-time injection (preferred)
+	// 1. Build-time injection (preferred - set by Docker/CI)
 	if Version != "" {
 		return Version
 	}
 
-	// 2. Environment variable
+	// 2. Environment variable (for runtime override)
 	if env := os.Getenv("SERVICE_VERSION"); env != "" {
 		return env
 	}
 
-	// 3. VERSION file (fallback)
-	if data, err := versionFS.ReadFile("VERSION"); err == nil {
-		return "v" + strings.TrimSpace(string(data))
+	// 3. Try to get from git tags (development)
+	if gitVersion := getGitVersion(); gitVersion != "" {
+		return gitVersion
 	}
 
 	// 4. Ultimate fallback
-	return "v0.0.1-dev"
+	return "v0.1.0-dev"
+}
+
+// getGitVersion attempts to get version from git tags
+func getGitVersion() string {
+	// Try git describe --tags
+	if cmd := exec.Command("git", "describe", "--tags", "--abbrev=0"); cmd != nil {
+		if output, err := cmd.Output(); err == nil {
+			return strings.TrimSpace(string(output))
+		}
+	}
+
+	// Try git describe with fallback
+	if cmd := exec.Command("git", "describe", "--tags"); cmd != nil {
+		if output, err := cmd.Output(); err == nil {
+			return strings.TrimSpace(string(output))
+		}
+	}
+
+	return ""
 }

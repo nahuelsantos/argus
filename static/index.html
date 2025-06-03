@@ -173,9 +173,9 @@
                                 test lgtm integration
                             </button>
                         </div>
-                    </div>
-                    
-                    <div class="card">
+        </div>
+        
+            <div class="card">
                         <h3 class="card-title">grafana dashboards</h3>
                         <p class="card-description">validate grafana dashboard availability and data sources</p>
                         <div class="btn-group">
@@ -183,7 +183,7 @@
                                     data-endpoint="/test-grafana-dashboards" 
                                     data-test-name="Grafana Dashboard Test">
                                 test dashboards
-                            </button>
+                    </button>
                         </div>
                     </div>
                     
@@ -195,7 +195,7 @@
                                     data-endpoint="/test-alert-rules" 
                                     data-test-name="Alert Rules Test">
                                 test alert rules
-                            </button>
+                    </button>
                         </div>
                     </div>
                 </div>
@@ -222,7 +222,7 @@
                         </div>
                     </div>
                     
-                    <div class="card">
+            <div class="card">
                         <h3 class="card-title">logs scale</h3>
                         <p class="card-description">generate high-volume logs to test loki processing</p>
                         <div class="btn-group">
@@ -231,7 +231,7 @@
                                     data-params="?duration=1m&concurrency=3"
                                     data-test-name="Logs Scale Test">
                                 test logs scale
-                            </button>
+                    </button>
                         </div>
                     </div>
                     
@@ -244,7 +244,7 @@
                                     data-params="?duration=30s&concurrency=2"
                                     data-test-name="Traces Scale Test">
                                 test traces scale
-                            </button>
+                    </button>
                         </div>
                     </div>
                     
@@ -257,7 +257,7 @@
                                     data-params="?concurrency=3&requests=50"
                                     data-test-name="Dashboard Load Test">
                                 test dashboard load
-                            </button>
+                    </button>
                         </div>
                     </div>
                 </div>
@@ -283,7 +283,7 @@
                         </div>
                     </div>
                     
-                    <div class="card">
+            <div class="card">
                         <h3 class="card-title">generate logs</h3>
                         <p class="card-description">create structured and unstructured logs for loki testing</p>
                         <div class="btn-group">
@@ -291,12 +291,12 @@
                                     data-endpoint="/generate-logs" 
                                     data-test-name="Generate Logs">
                                 generate logs
-                            </button>
+                    </button>
                             <button class="btn test-btn" 
                                     data-endpoint="/generate-logs/json" 
                                     data-test-name="Generate JSON Logs">
                                 generate json logs
-                            </button>
+                    </button>
                         </div>
                     </div>
                     
@@ -308,7 +308,7 @@
                                     data-endpoint="/generate-error" 
                                     data-test-name="Generate Errors">
                                 generate errors
-                            </button>
+                    </button>
                         </div>
                     </div>
                 </div>
@@ -334,7 +334,7 @@
                         </div>
                     </div>
                     
-                    <div class="card">
+            <div class="card">
                         <h3 class="card-title">api service</h3>
                         <p class="card-description">simulate rest api traffic with authentication and rate limiting</p>
                         <div class="btn-group">
@@ -342,7 +342,7 @@
                                     data-endpoint="/simulate/api-service" 
                                     data-test-name="API Service Simulation">
                                 simulate api service
-                            </button>
+                    </button>
                         </div>
                     </div>
                     
@@ -354,7 +354,7 @@
                                     data-endpoint="/simulate/database-service" 
                                     data-test-name="Database Service Simulation">
                                 simulate database
-                            </button>
+                    </button>
                         </div>
                     </div>
                     
@@ -366,7 +366,7 @@
                                     data-endpoint="/simulate/microservice" 
                                     data-test-name="Microservice Simulation">
                                 simulate microservices
-                            </button>
+                    </button>
                         </div>
                     </div>
                 </div>
@@ -412,8 +412,8 @@
                             <input type="password" id="prometheus-password" placeholder="" class="setting-input">
                         </div>
                         <button class="btn test-connection-btn" data-service="prometheus">test connection</button>
-                    </div>
-
+        </div>
+        
                     <div class="settings-section">
                         <h3>loki configuration</h3>
                         <div class="setting-group">
@@ -421,8 +421,8 @@
                             <input type="text" id="loki-url" placeholder="http://localhost:3100" class="setting-input">
                         </div>
                         <button class="btn test-connection-btn" data-service="loki">test connection</button>
-                    </div>
-
+        </div>
+        
                     <div class="settings-section">
                         <h3>tempo configuration</h3>
                         <div class="setting-group">
@@ -430,14 +430,14 @@
                             <input type="text" id="tempo-url" placeholder="http://localhost:3200" class="setting-input">
                         </div>
                         <button class="btn test-connection-btn" data-service="tempo">test connection</button>
-                    </div>
-
+        </div>
+        
                     <div class="settings-actions">
                         <button class="btn btn-primary" id="save-settings">save configuration</button>
                         <button class="btn" id="reset-settings">reset to defaults</button>
                     </div>
                 </div>
-            </div>
+        </div>
         </main>
     </div>
 </body>
