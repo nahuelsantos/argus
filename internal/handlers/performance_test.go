@@ -15,7 +15,7 @@ import (
 func TestNewPerformanceHandlers(t *testing.T) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 
 	handlers := NewPerformanceHandlers(loggingService, tracingService)
@@ -65,7 +65,7 @@ func TestPerformanceHandlers_TestMetricsScale(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewPerformanceHandlers(loggingService, tracingService)
 
@@ -153,7 +153,7 @@ func TestPerformanceHandlers_TestLogsScale(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewPerformanceHandlers(loggingService, tracingService)
 
@@ -228,7 +228,7 @@ func TestPerformanceHandlers_TestTracesScale(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewPerformanceHandlers(loggingService, tracingService)
 
@@ -302,7 +302,7 @@ func TestPerformanceHandlers_TestDashboardLoad(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewPerformanceHandlers(loggingService, tracingService)
 
@@ -373,7 +373,7 @@ func TestPerformanceHandlers_TestResourceUsage(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewPerformanceHandlers(loggingService, tracingService)
 
@@ -441,7 +441,7 @@ func TestPerformanceHandlers_TestStorageLimits(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewPerformanceHandlers(loggingService, tracingService)
 
@@ -557,7 +557,7 @@ func TestResourceUsage(t *testing.T) {
 func BenchmarkPerformanceHandlers_TestMetricsScale(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewPerformanceHandlers(loggingService, tracingService)
 
@@ -572,7 +572,7 @@ func BenchmarkPerformanceHandlers_TestMetricsScale(b *testing.B) {
 func BenchmarkPerformanceHandlers_TestLogsScale(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewPerformanceHandlers(loggingService, tracingService)
 
@@ -587,7 +587,7 @@ func BenchmarkPerformanceHandlers_TestLogsScale(b *testing.B) {
 func BenchmarkPerformanceHandlers_TestResourceUsage(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewPerformanceHandlers(loggingService, tracingService)
 

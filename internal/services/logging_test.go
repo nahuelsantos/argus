@@ -31,7 +31,7 @@ func TestLoggingService_InitLogger(t *testing.T) {
 
 	// Test that InitLogger doesn't panic
 	assert.NotPanics(t, func() {
-		ls.InitLogger()
+		ls.InitTestLogger()
 	})
 
 	// After initialization, global logger should be set
@@ -294,7 +294,7 @@ func TestLoggingService_ExtractUserAndSessionID(t *testing.T) {
 
 func TestLoggingService_LogWithContext(t *testing.T) {
 	ls := NewLoggingService()
-	ls.InitLogger()
+	ls.InitTestLogger()
 
 	tests := []struct {
 		name           string
@@ -351,7 +351,7 @@ func TestLoggingService_LogWithContext(t *testing.T) {
 
 func TestLoggingService_LogWithContextFields(t *testing.T) {
 	ls := NewLoggingService()
-	ls.InitLogger()
+	ls.InitTestLogger()
 
 	t.Run("includes context fields", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), models.RequestIDKey, "test-request-id")
@@ -365,7 +365,7 @@ func TestLoggingService_LogWithContextFields(t *testing.T) {
 
 func TestLoggingService_LogBusinessEvent(t *testing.T) {
 	ls := NewLoggingService()
-	ls.InitLogger()
+	ls.InitTestLogger()
 
 	tests := []struct {
 		name      string
@@ -412,7 +412,7 @@ func TestLoggingService_LogBusinessEvent(t *testing.T) {
 
 func TestLoggingService_LogPerformance(t *testing.T) {
 	ls := NewLoggingService()
-	ls.InitLogger()
+	ls.InitTestLogger()
 
 	tests := []struct {
 		name           string
@@ -457,7 +457,7 @@ func TestLoggingService_LogPerformance(t *testing.T) {
 
 func TestLoggingService_LogError(t *testing.T) {
 	ls := NewLoggingService()
-	ls.InitLogger()
+	ls.InitTestLogger()
 
 	tests := []struct {
 		name           string
@@ -554,7 +554,7 @@ func TestLoggingService_GetRequestIDFromContext(t *testing.T) {
 
 func TestLoggingService_Integration(t *testing.T) {
 	ls := NewLoggingService()
-	ls.InitLogger()
+	ls.InitTestLogger()
 
 	t.Run("full logging workflow", func(t *testing.T) {
 		// Create a request with context
@@ -618,7 +618,7 @@ func BenchmarkLoggingService_CreateLogContext(b *testing.B) {
 
 func BenchmarkLoggingService_LogWithContext(b *testing.B) {
 	ls := NewLoggingService()
-	ls.InitLogger()
+	ls.InitTestLogger()
 	ctx := context.Background()
 
 	b.ResetTimer()
@@ -629,7 +629,7 @@ func BenchmarkLoggingService_LogWithContext(b *testing.B) {
 
 func BenchmarkLoggingService_LogBusinessEvent(b *testing.B) {
 	ls := NewLoggingService()
-	ls.InitLogger()
+	ls.InitTestLogger()
 	data := map[string]interface{}{"key": "value"}
 
 	b.ResetTimer()

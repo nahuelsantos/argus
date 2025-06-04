@@ -14,7 +14,7 @@ import (
 func TestNewAlertingHandlers(t *testing.T) {
 	loggingService := services.NewLoggingService()
 	alertingService := services.NewAlertingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 
 	handlers := NewAlertingHandlers(loggingService, alertingService)
 
@@ -46,7 +46,7 @@ func TestAlertingHandlers_TestAlertRulesHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			alertingService := services.NewAlertingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			handlers := NewAlertingHandlers(loggingService, alertingService)
 
 			// Create request
@@ -137,7 +137,7 @@ func TestAlertingHandlers_TestFireAlertHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			alertingService := services.NewAlertingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			handlers := NewAlertingHandlers(loggingService, alertingService)
 
 			// Build query string
@@ -226,7 +226,7 @@ func TestAlertingHandlers_TestIncidentManagementHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			alertingService := services.NewAlertingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			handlers := NewAlertingHandlers(loggingService, alertingService)
 
 			// Create request
@@ -310,7 +310,7 @@ func TestAlertingHandlers_TestNotificationChannelsHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			alertingService := services.NewAlertingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			handlers := NewAlertingHandlers(loggingService, alertingService)
 
 			// Create request
@@ -360,7 +360,7 @@ func TestAlertingHandlers_GetActiveAlertsHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			alertingService := services.NewAlertingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			handlers := NewAlertingHandlers(loggingService, alertingService)
 
 			// Create request
@@ -428,7 +428,7 @@ func TestAlertingHandlers_GetActiveIncidentsHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			alertingService := services.NewAlertingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			handlers := NewAlertingHandlers(loggingService, alertingService)
 
 			// Create request
@@ -487,7 +487,7 @@ func TestAlertingHandlers_GetActiveIncidentsHandler(t *testing.T) {
 func BenchmarkAlertingHandlers_TestAlertRules(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	alertingService := services.NewAlertingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	handlers := NewAlertingHandlers(loggingService, alertingService)
 
 	b.ResetTimer()
@@ -501,7 +501,7 @@ func BenchmarkAlertingHandlers_TestAlertRules(b *testing.B) {
 func BenchmarkAlertingHandlers_FireAlert(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	alertingService := services.NewAlertingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	handlers := NewAlertingHandlers(loggingService, alertingService)
 
 	b.ResetTimer()
@@ -515,7 +515,7 @@ func BenchmarkAlertingHandlers_FireAlert(b *testing.B) {
 func BenchmarkAlertingHandlers_IncidentManagement(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	alertingService := services.NewAlertingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	handlers := NewAlertingHandlers(loggingService, alertingService)
 
 	b.ResetTimer()

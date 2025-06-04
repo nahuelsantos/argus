@@ -14,7 +14,7 @@ import (
 func TestNewSimulationHandlers(t *testing.T) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 
 	handlers := NewSimulationHandlers(loggingService, tracingService)
@@ -47,7 +47,7 @@ func TestSimulationHandlers_SimulateWebServiceHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewSimulationHandlers(loggingService, tracingService)
 
@@ -123,7 +123,7 @@ func TestSimulationHandlers_SimulateAPIServiceHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewSimulationHandlers(loggingService, tracingService)
 
@@ -197,7 +197,7 @@ func TestSimulationHandlers_SimulateDatabaseServiceHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewSimulationHandlers(loggingService, tracingService)
 
@@ -281,7 +281,7 @@ func TestSimulationHandlers_SimulateStaticSiteHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewSimulationHandlers(loggingService, tracingService)
 
@@ -353,7 +353,7 @@ func TestSimulationHandlers_SimulateMicroserviceHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewSimulationHandlers(loggingService, tracingService)
 
@@ -405,7 +405,7 @@ func TestSimulationHandlers_SimulateMicroserviceHandler(t *testing.T) {
 func BenchmarkSimulationHandlers_SimulateWebServiceHandler(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewSimulationHandlers(loggingService, tracingService)
 
@@ -421,7 +421,7 @@ func BenchmarkSimulationHandlers_SimulateWebServiceHandler(b *testing.B) {
 func BenchmarkSimulationHandlers_SimulateAPIServiceHandler(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewSimulationHandlers(loggingService, tracingService)
 
@@ -437,7 +437,7 @@ func BenchmarkSimulationHandlers_SimulateAPIServiceHandler(b *testing.B) {
 func BenchmarkSimulationHandlers_SimulateDatabaseServiceHandler(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewSimulationHandlers(loggingService, tracingService)
 
@@ -453,7 +453,7 @@ func BenchmarkSimulationHandlers_SimulateDatabaseServiceHandler(b *testing.B) {
 func BenchmarkSimulationHandlers_SimulateStaticSiteHandler(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewSimulationHandlers(loggingService, tracingService)
 
@@ -469,7 +469,7 @@ func BenchmarkSimulationHandlers_SimulateStaticSiteHandler(b *testing.B) {
 func BenchmarkSimulationHandlers_SimulateMicroserviceHandler(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewSimulationHandlers(loggingService, tracingService)
 

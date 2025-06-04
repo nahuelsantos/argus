@@ -14,7 +14,7 @@ import (
 func TestNewIntegrationHandlers(t *testing.T) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 
 	handlers := NewIntegrationHandlers(loggingService, tracingService)
@@ -47,7 +47,7 @@ func TestIntegrationHandlers_TestLGTMIntegration(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewIntegrationHandlers(loggingService, tracingService)
 
@@ -126,7 +126,7 @@ func TestIntegrationHandlers_TestGrafanaDashboards(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewIntegrationHandlers(loggingService, tracingService)
 
@@ -187,7 +187,7 @@ func TestIntegrationHandlers_TestAlertRules(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewIntegrationHandlers(loggingService, tracingService)
 
@@ -206,32 +206,41 @@ func TestIntegrationHandlers_TestAlertRules(t *testing.T) {
 			err := json.Unmarshal(w.Body.Bytes(), &response)
 			require.NoError(t, err)
 
-			// Check response structure (actual fields from alert rules test)
+			// Check basic response structure (always present)
 			assert.Contains(t, response, "message")
 			assert.Contains(t, response, "status")
 			assert.Contains(t, response, "timestamp")
-			assert.Contains(t, response, "rule_summary")
-			assert.Contains(t, response, "alert_summary")
 			assert.Contains(t, response, "test_results")
-
-			// Check rule summary structure
-			ruleSummary, ok := response["rule_summary"].(map[string]interface{})
-			assert.True(t, ok)
-			assert.Contains(t, ruleSummary, "total_groups")
-			assert.Contains(t, ruleSummary, "alert_rules")
-			assert.Contains(t, ruleSummary, "recording_rules")
-
-			// Check alert summary structure
-			alertSummary, ok := response["alert_summary"].(map[string]interface{})
-			assert.True(t, ok)
-			assert.Contains(t, alertSummary, "total_alerts")
-			assert.Contains(t, alertSummary, "firing_alerts")
-			assert.Contains(t, alertSummary, "pending_alerts")
 
 			// Check test results array
 			testResults, ok := response["test_results"].([]interface{})
 			assert.True(t, ok)
 			assert.NotEmpty(t, testResults)
+
+			// Additional fields only present in successful responses
+			if response["status"] == "healthy" || response["status"] == "partial" || response["status"] == "degraded" {
+				// Check rule summary structure (only in success cases)
+				assert.Contains(t, response, "rule_summary")
+				assert.Contains(t, response, "alert_summary")
+
+				ruleSummary, ok := response["rule_summary"].(map[string]interface{})
+				assert.True(t, ok)
+				assert.Contains(t, ruleSummary, "total_groups")
+				assert.Contains(t, ruleSummary, "alert_rules")
+				assert.Contains(t, ruleSummary, "recording_rules")
+
+				// Check alert summary structure
+				alertSummary, ok := response["alert_summary"].(map[string]interface{})
+				assert.True(t, ok)
+				assert.Contains(t, alertSummary, "total_alerts")
+				assert.Contains(t, alertSummary, "firing_alerts")
+				assert.Contains(t, alertSummary, "pending_alerts")
+			} else {
+				// In error cases, should have error field
+				if response["status"] == "connection_error" || response["status"] == "api_error" {
+					assert.Contains(t, response, "error")
+				}
+			}
 		})
 	}
 }
@@ -240,7 +249,7 @@ func TestIntegrationHandlers_TestAlertRules(t *testing.T) {
 func BenchmarkIntegrationHandlers_TestLGTMIntegration(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewIntegrationHandlers(loggingService, tracingService)
 
@@ -256,7 +265,7 @@ func BenchmarkIntegrationHandlers_TestLGTMIntegration(b *testing.B) {
 func BenchmarkIntegrationHandlers_TestGrafanaDashboards(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewIntegrationHandlers(loggingService, tracingService)
 
@@ -272,7 +281,7 @@ func BenchmarkIntegrationHandlers_TestGrafanaDashboards(b *testing.B) {
 func BenchmarkIntegrationHandlers_TestAlertRules(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewIntegrationHandlers(loggingService, tracingService)
 

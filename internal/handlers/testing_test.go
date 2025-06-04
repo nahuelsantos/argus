@@ -15,7 +15,7 @@ import (
 func TestNewTestingHandlers(t *testing.T) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 
 	handlers := NewTestingHandlers(loggingService, tracingService)
@@ -48,7 +48,7 @@ func TestTestingHandlers_GenerateJSONLogsHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewTestingHandlers(loggingService, tracingService)
 
@@ -129,7 +129,7 @@ func TestTestingHandlers_GenerateUnstructuredLogsHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewTestingHandlers(loggingService, tracingService)
 
@@ -206,7 +206,7 @@ func TestTestingHandlers_GenerateMixedLogsHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewTestingHandlers(loggingService, tracingService)
 
@@ -277,7 +277,7 @@ func TestTestingHandlers_GenerateMultilineLogsHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewTestingHandlers(loggingService, tracingService)
 
@@ -322,7 +322,7 @@ func TestTestingHandlers_SimulateWordPressServiceHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewTestingHandlers(loggingService, tracingService)
 
@@ -369,7 +369,7 @@ func TestTestingHandlers_SimulateNextJSServiceHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewTestingHandlers(loggingService, tracingService)
 
@@ -416,7 +416,7 @@ func TestTestingHandlers_SimulateCrossServiceTracingHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewTestingHandlers(loggingService, tracingService)
 
@@ -461,7 +461,7 @@ func TestTestingHandlers_TestServiceDiscoveryHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewTestingHandlers(loggingService, tracingService)
 
@@ -506,7 +506,7 @@ func TestTestingHandlers_TestReverseProxyHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewTestingHandlers(loggingService, tracingService)
 
@@ -551,7 +551,7 @@ func TestTestingHandlers_TestSSLMonitoringHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewTestingHandlers(loggingService, tracingService)
 
@@ -596,7 +596,7 @@ func TestTestingHandlers_TestDomainHealthHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewTestingHandlers(loggingService, tracingService)
 
@@ -627,7 +627,7 @@ func TestTestingHandlers_TestDomainHealthHandler(t *testing.T) {
 func BenchmarkTestingHandlers_GenerateJSONLogsHandler(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewTestingHandlers(loggingService, tracingService)
 
@@ -643,7 +643,7 @@ func BenchmarkTestingHandlers_GenerateJSONLogsHandler(b *testing.B) {
 func BenchmarkTestingHandlers_GenerateUnstructuredLogsHandler(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewTestingHandlers(loggingService, tracingService)
 
@@ -659,7 +659,7 @@ func BenchmarkTestingHandlers_GenerateUnstructuredLogsHandler(b *testing.B) {
 func BenchmarkTestingHandlers_GenerateMixedLogsHandler(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewTestingHandlers(loggingService, tracingService)
 

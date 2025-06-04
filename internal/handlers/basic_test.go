@@ -52,7 +52,7 @@ func TestBasicHandlers_HealthHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewBasicHandlers(loggingService, tracingService)
 
@@ -147,7 +147,7 @@ func TestBasicHandlers_GenerateMetricsHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewBasicHandlers(loggingService, tracingService)
 
@@ -226,7 +226,7 @@ func TestBasicHandlers_GenerateLogsHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewBasicHandlers(loggingService, tracingService)
 
@@ -289,7 +289,7 @@ func TestBasicHandlers_GenerateErrorHandler(t *testing.T) {
 				// Setup
 				loggingService := services.NewLoggingService()
 				tracingService := services.NewTracingService()
-				loggingService.InitLogger()
+				loggingService.InitTestLogger()
 				tracingService.InitTracer()
 				handlers := NewBasicHandlers(loggingService, tracingService)
 
@@ -370,7 +370,7 @@ func TestBasicHandlers_CPULoadHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewBasicHandlers(loggingService, tracingService)
 
@@ -447,7 +447,7 @@ func TestBasicHandlers_MemoryLoadHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewBasicHandlers(loggingService, tracingService)
 
@@ -510,7 +510,7 @@ func TestBasicHandlers_LGTMStatusHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewBasicHandlers(loggingService, tracingService)
 
@@ -584,7 +584,7 @@ func TestBasicHandlers_SettingsHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewBasicHandlers(loggingService, tracingService)
 
@@ -675,7 +675,7 @@ func TestBasicHandlers_TestConnectionHandler(t *testing.T) {
 			// Setup
 			loggingService := services.NewLoggingService()
 			tracingService := services.NewTracingService()
-			loggingService.InitLogger()
+			loggingService.InitTestLogger()
 			tracingService.InitTracer()
 			handlers := NewBasicHandlers(loggingService, tracingService)
 
@@ -717,7 +717,7 @@ func TestBasicHandlers_TestConnectionHandler(t *testing.T) {
 func BenchmarkBasicHandlers_HealthHandler(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewBasicHandlers(loggingService, tracingService)
 
@@ -733,7 +733,7 @@ func BenchmarkBasicHandlers_HealthHandler(b *testing.B) {
 func BenchmarkBasicHandlers_GenerateMetricsHandler(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewBasicHandlers(loggingService, tracingService)
 
@@ -749,7 +749,7 @@ func BenchmarkBasicHandlers_GenerateMetricsHandler(b *testing.B) {
 func BenchmarkBasicHandlers_GenerateLogsHandler(b *testing.B) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 	handlers := NewBasicHandlers(loggingService, tracingService)
 

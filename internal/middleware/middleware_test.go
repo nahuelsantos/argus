@@ -321,7 +321,7 @@ func TestPrometheusMiddleware(t *testing.T) {
 func TestEnhancedTracingMiddleware(t *testing.T) {
 	loggingService := services.NewLoggingService()
 	tracingService := services.NewTracingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 	tracingService.InitTracer()
 
 	tests := []struct {
@@ -368,7 +368,7 @@ func TestEnhancedTracingMiddleware(t *testing.T) {
 
 func TestRequestCorrelationMiddleware(t *testing.T) {
 	loggingService := services.NewLoggingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 
 	tests := []struct {
 		name              string
@@ -526,7 +526,7 @@ func TestGetLogLevel(t *testing.T) {
 
 func TestAddMiddleware(t *testing.T) {
 	loggingService := services.NewLoggingService()
-	loggingService.InitLogger()
+	loggingService.InitTestLogger()
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
