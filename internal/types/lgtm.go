@@ -4,10 +4,11 @@ import "os"
 
 // LGTMSettings represents the configuration for all LGTM stack services
 type LGTMSettings struct {
-	Grafana    ServiceConfig `json:"grafana"`
-	Prometheus ServiceConfig `json:"prometheus"`
-	Loki       ServiceConfig `json:"loki"`
-	Tempo      ServiceConfig `json:"tempo"`
+	Grafana      ServiceConfig `json:"grafana"`
+	Prometheus   ServiceConfig `json:"prometheus"`
+	AlertManager ServiceConfig `json:"alertmanager"`
+	Loki         ServiceConfig `json:"loki"`
+	Tempo        ServiceConfig `json:"tempo"`
 }
 
 // ServiceConfig represents the configuration for a single service
@@ -37,6 +38,9 @@ func GetDefaults() *LGTMSettings {
 			URL:      getEnv("PROMETHEUS_URL", "http://localhost:9090"),
 			Username: getEnv("PROMETHEUS_USERNAME", ""),
 			Password: getEnv("PROMETHEUS_PASSWORD", ""),
+		},
+		AlertManager: ServiceConfig{
+			URL: getEnv("ALERTMANAGER_URL", "http://localhost:9093"),
 		},
 		Loki: ServiceConfig{
 			URL: getEnv("LOKI_URL", "http://localhost:3100"),

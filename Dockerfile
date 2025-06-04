@@ -24,7 +24,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags "-X 'github.com/nahuelsantos/argus/internal/config.Version=${VERSION}' \
               -X 'github.com/nahuelsantos/argus/internal/config.BuildTime=${BUILD_TIME}' \
               -X 'github.com/nahuelsantos/argus/internal/config.GitCommit=${GIT_COMMIT}'" \
-    -a -installsuffix cgo -o argus ./cmd/argus/
+    -a -installsuffix cgo -o argus github.com/nahuelsantos/argus/cmd/argus
 
 # Final stage
 FROM alpine:3.19

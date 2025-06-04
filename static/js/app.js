@@ -230,19 +230,20 @@ window.ArgusApp = {
                 
                 // Update each service status based on actual checks
                 this.updateServiceStatus('prometheus-status', status.prometheus || 'offline');
+                this.updateServiceStatus('alertmanager-status', status.alertmanager || 'offline');
                 this.updateServiceStatus('grafana-status', status.grafana || 'offline');
                 this.updateServiceStatus('loki-status', status.loki || 'offline');
                 this.updateServiceStatus('tempo-status', status.tempo || 'offline');
             } else {
                 // If the endpoint fails, mark all as offline
-                const services = ['prometheus-status', 'grafana-status', 'loki-status', 'tempo-status'];
+                const services = ['prometheus-status', 'alertmanager-status', 'grafana-status', 'loki-status', 'tempo-status'];
                 services.forEach(service => {
                     this.updateServiceStatus(service, 'offline');
                 });
             }
         } catch (error) {
             // If we can't reach our backend, mark all as offline
-            const services = ['prometheus-status', 'grafana-status', 'loki-status', 'tempo-status'];
+            const services = ['prometheus-status', 'alertmanager-status', 'grafana-status', 'loki-status', 'tempo-status'];
             services.forEach(service => {
                 this.updateServiceStatus(service, 'offline');
             });
