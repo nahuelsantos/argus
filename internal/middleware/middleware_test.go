@@ -166,21 +166,27 @@ func TestTimeoutMiddleware(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Capture test case values to avoid race condition
+			handlerDelay := tt.handlerDelay
+			timeout := tt.timeout
+			path := tt.path
+			expectedStatus := tt.expectedStatus
+
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				time.Sleep(tt.handlerDelay)
+				time.Sleep(handlerDelay)
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write([]byte("OK"))
 			})
 
-			middleware := TimeoutMiddleware(tt.timeout)(handler)
-			req := httptest.NewRequest("GET", tt.path, nil)
+			middleware := TimeoutMiddleware(timeout)(handler)
+			req := httptest.NewRequest("GET", path, nil)
 			w := httptest.NewRecorder()
 
 			middleware.ServeHTTP(w, req)
 
-			assert.Equal(t, tt.expectedStatus, w.Code)
+			assert.Equal(t, expectedStatus, w.Code)
 
-			if tt.expectedStatus == http.StatusRequestTimeout {
+			if expectedStatus == http.StatusRequestTimeout {
 				assert.Contains(t, w.Body.String(), "Request timeout")
 			}
 		})

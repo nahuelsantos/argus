@@ -98,6 +98,58 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// timeoutResponseWriter wraps ResponseWriter to prevent concurrent writes
+type timeoutResponseWriter struct {
+	w           http.ResponseWriter
+	mu          sync.Mutex
+	wroteHeader bool
+	wroteBody   bool
+	timedOut    bool
+}
+
+func (tw *timeoutResponseWriter) Header() http.Header {
+	return tw.w.Header()
+}
+
+func (tw *timeoutResponseWriter) WriteHeader(code int) {
+	tw.mu.Lock()
+	defer tw.mu.Unlock()
+	if !tw.wroteHeader && !tw.timedOut {
+		tw.w.WriteHeader(code)
+		tw.wroteHeader = true
+	}
+}
+
+func (tw *timeoutResponseWriter) Write(data []byte) (int, error) {
+	tw.mu.Lock()
+	defer tw.mu.Unlock()
+	if tw.timedOut {
+		// If timed out, don't write but return success to avoid handler errors
+		return len(data), nil
+	}
+	if !tw.wroteHeader {
+		tw.w.WriteHeader(http.StatusOK)
+		tw.wroteHeader = true
+	}
+	tw.wroteBody = true
+	return tw.w.Write(data)
+}
+
+func (tw *timeoutResponseWriter) tryWriteTimeout() bool {
+	tw.mu.Lock()
+	defer tw.mu.Unlock()
+	if !tw.wroteHeader && !tw.timedOut {
+		tw.w.WriteHeader(http.StatusRequestTimeout)
+		tw.w.Write([]byte("Request timeout\n"))
+		tw.wroteHeader = true
+		tw.wroteBody = true
+		tw.timedOut = true
+		return true
+	}
+	tw.timedOut = true // Mark as timed out even if we couldn't write
+	return false
+}
+
 // TimeoutMiddleware adds request timeout protection with conditional logic
 func TimeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -117,18 +169,22 @@ func TimeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
 			ctx, cancel := context.WithTimeout(r.Context(), timeout)
 			defer cancel()
 
+			// Wrap the response writer to prevent race conditions
+			tw := &timeoutResponseWriter{w: w}
 			done := make(chan struct{})
+
 			go func() {
-				next.ServeHTTP(w, r.WithContext(ctx))
-				close(done)
+				defer close(done)
+				next.ServeHTTP(tw, r.WithContext(ctx))
 			}()
 
 			select {
 			case <-done:
 				// Request completed normally
 			case <-ctx.Done():
-				// Request timed out
-				http.Error(w, "Request timeout", http.StatusRequestTimeout)
+				// Request timed out - try to write timeout response
+				tw.tryWriteTimeout()
+				<-done // Wait for the handler to complete
 			}
 		})
 	}
