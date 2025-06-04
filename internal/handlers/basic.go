@@ -286,19 +286,22 @@ func (bh *BasicHandlers) MemoryLoadHandler(w http.ResponseWriter, r *http.Reques
 
 // LGTMStatusHandler checks the status of LGTM stack components
 func (bh *BasicHandlers) LGTMStatusHandler(w http.ResponseWriter, r *http.Request) {
+	// For Docker networks (service names)
 	services := map[string]string{
-		"prometheus": "http://prometheus:9090/-/healthy",
-		"grafana":    "http://grafana:3000/api/health",
-		"loki":       "http://loki:3100/ready",
-		"tempo":      "http://tempo:3200/ready",
+		"prometheus":   "http://prometheus:9090/-/healthy",
+		"alertmanager": "http://alertmanager:9093/-/healthy",
+		"grafana":      "http://grafana:3000/api/health",
+		"loki":         "http://loki:3100/ready",
+		"tempo":        "http://tempo:3200/ready",
 	}
 
 	// For local development, try localhost as fallback
 	localServices := map[string]string{
-		"prometheus": "http://localhost:9090/-/healthy",
-		"grafana":    "http://localhost:3000/api/health",
-		"loki":       "http://localhost:3100/ready",
-		"tempo":      "http://localhost:3200/ready",
+		"prometheus":   "http://localhost:9090/-/healthy",
+		"alertmanager": "http://localhost:9093/-/healthy",
+		"grafana":      "http://localhost:3000/api/health",
+		"loki":         "http://localhost:3100/ready",
+		"tempo":        "http://localhost:3200/ready",
 	}
 
 	status := make(map[string]interface{})
@@ -414,6 +417,9 @@ func (bh *BasicHandlers) testServiceConnection(service string, config types.Serv
 	case "prometheus":
 		testURL = config.URL + "/-/healthy"
 		requiresAuth = config.Username != ""
+	case "alertmanager":
+		testURL = config.URL + "/-/healthy"
+		requiresAuth = false
 	case "loki":
 		testURL = config.URL + "/ready"
 		requiresAuth = false

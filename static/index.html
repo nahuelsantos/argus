@@ -110,6 +110,13 @@
                         </div>
                     </div>
                     <div class="status-card">
+                        <div id="alertmanager-status" class="status-indicator status-offline"></div>
+                        <div class="status-info">
+                            <h4>alertmanager</h4>
+                            <small>alert management</small>
+                        </div>
+                    </div>
+                    <div class="status-card">
                         <div id="grafana-status" class="status-indicator status-offline"></div>
                         <div class="status-info">
                             <h4>grafana</h4>
@@ -137,6 +144,7 @@
                         <h3 class="card-title">direct links</h3>
                         <div class="card-description">
                             <p><a href="http://localhost:9090" target="_blank">prometheus: localhost:9090</a></p>
+                            <p><a href="http://localhost:9093" target="_blank">alertmanager: localhost:9093</a></p>
                             <p><a href="http://localhost:3000" target="_blank">grafana: localhost:3000</a></p>
                             <p><a href="http://localhost:3100" target="_blank">loki: localhost:3100</a></p>
                             <p><a href="http://localhost:3200" target="_blank">tempo: localhost:3200</a></p>

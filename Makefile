@@ -25,13 +25,18 @@ run: build ## Build and run locally
 	@echo "Starting $(BINARY_NAME)..."
 	./$(BUILD_DIR)/$(BINARY_NAME)
 
-start: ## Start with Docker Compose
-	docker compose up -d
-	@echo "Started Argus stack with Docker Compose"
+start: ## Start Argus container
+	@echo "Starting Argus container..."
+	@docker stop argus 2>/dev/null || true
+	@docker rm argus 2>/dev/null || true
+	@docker run -d -p 3001:3001 --name argus --network traefik_network test-argus-v2
+	@echo "✅ Argus started at http://localhost:3001"
 
-stop: ## Stop Docker Compose
-	docker compose down
-	@echo "Stopped Argus stack"
+stop: ## Stop Argus container
+	@echo "Stopping Argus container..."
+	@docker stop argus 2>/dev/null || true
+	@docker rm argus 2>/dev/null || true
+	@echo "✅ Argus stopped"
 
 test: ## Run tests
 	go test -v ./...
