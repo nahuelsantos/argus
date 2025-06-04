@@ -209,7 +209,7 @@ func TestAlertManager(t *testing.T) {
 	}
 
 	// Test JSON marshaling (excluding Mutex)
-	data, err := json.Marshal(manager)
+	data, err := json.Marshal(&manager)
 	require.NoError(t, err)
 	assert.Contains(t, string(data), "CPU High")
 

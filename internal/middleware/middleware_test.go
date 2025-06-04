@@ -74,7 +74,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("OK"))
+				_, _ = w.Write([]byte("OK"))
 			})
 
 			middleware := RateLimitMiddleware(handler)
@@ -169,7 +169,7 @@ func TestTimeoutMiddleware(t *testing.T) {
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				time.Sleep(tt.handlerDelay)
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("OK"))
+				_, _ = w.Write([]byte("OK"))
 			})
 
 			middleware := TimeoutMiddleware(tt.timeout)(handler)
@@ -300,7 +300,7 @@ func TestPrometheusMiddleware(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.handlerStatus)
-				w.Write([]byte("Response"))
+				_, _ = w.Write([]byte("Response"))
 			})
 
 			middleware := PrometheusMiddleware(handler)
@@ -348,7 +348,7 @@ func TestEnhancedTracingMiddleware(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.handlerStatus)
-				w.Write([]byte("Response"))
+				_, _ = w.Write([]byte("Response"))
 			})
 
 			middleware := EnhancedTracingMiddleware(loggingService, tracingService)(handler)
@@ -530,7 +530,7 @@ func TestAddMiddleware(t *testing.T) {
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	})
 
 	// Test that AddMiddleware doesn't panic and returns a handler
