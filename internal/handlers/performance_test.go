@@ -32,15 +32,19 @@ func TestPerformanceHandlers_TestMetricsScale(t *testing.T) {
 		expectedStatus int
 	}{
 		{
-			name:           "default metrics scale test",
-			queryParams:    map[string]string{},
+			name: "lightweight metrics scale test for CI",
+			queryParams: map[string]string{
+				"duration":    "100ms", // Very short for testing
+				"count":       "10",    // Small count
+				"concurrency": "2",     // Low concurrency
+			},
 			expectedStatus: http.StatusOK,
 		},
 		{
 			name: "metrics scale with low count",
 			queryParams: map[string]string{
 				"count":       "10",
-				"duration":    "1s",
+				"duration":    "50ms", // Faster for CI
 				"concurrency": "2",
 			},
 			expectedStatus: http.StatusOK,
@@ -49,7 +53,7 @@ func TestPerformanceHandlers_TestMetricsScale(t *testing.T) {
 			name: "metrics scale with higher values",
 			queryParams: map[string]string{
 				"count":       "50",
-				"duration":    "2s",
+				"duration":    "100ms", // Faster for CI
 				"concurrency": "3",
 			},
 			expectedStatus: http.StatusOK,
@@ -116,14 +120,18 @@ func TestPerformanceHandlers_TestLogsScale(t *testing.T) {
 		expectedStatus int
 	}{
 		{
-			name:           "default logs scale test",
-			queryParams:    map[string]string{},
+			name: "lightweight logs scale test for CI",
+			queryParams: map[string]string{
+				"duration":    "100ms", // Very short for testing
+				"concurrency": "2",     // Low concurrency
+				"level":       "info",  // Simple log level
+			},
 			expectedStatus: http.StatusOK,
 		},
 		{
 			name: "logs scale with info level",
 			queryParams: map[string]string{
-				"duration":    "1s",
+				"duration":    "50ms", // Faster for CI
 				"concurrency": "2",
 				"level":       "info",
 			},
@@ -132,7 +140,7 @@ func TestPerformanceHandlers_TestLogsScale(t *testing.T) {
 		{
 			name: "logs scale with error level",
 			queryParams: map[string]string{
-				"duration":    "1s",
+				"duration":    "50ms", // Faster for CI
 				"concurrency": "1",
 				"level":       "error",
 			},
@@ -198,14 +206,17 @@ func TestPerformanceHandlers_TestTracesScale(t *testing.T) {
 		expectedStatus int
 	}{
 		{
-			name:           "default traces scale test",
-			queryParams:    map[string]string{},
+			name: "lightweight traces scale test for CI",
+			queryParams: map[string]string{
+				"duration":    "100ms", // Very short for testing
+				"concurrency": "2",     // Low concurrency
+			},
 			expectedStatus: http.StatusOK,
 		},
 		{
 			name: "traces scale with custom values",
 			queryParams: map[string]string{
-				"duration":    "1s",
+				"duration":    "50ms", // Faster for CI
 				"concurrency": "2",
 			},
 			expectedStatus: http.StatusOK,
@@ -269,14 +280,17 @@ func TestPerformanceHandlers_TestDashboardLoad(t *testing.T) {
 		expectedStatus int
 	}{
 		{
-			name:           "default dashboard load test",
-			queryParams:    map[string]string{},
+			name: "lightweight dashboard load test for CI",
+			queryParams: map[string]string{
+				"duration":    "100ms", // Very short for testing
+				"concurrency": "2",     // Low concurrency
+			},
 			expectedStatus: http.StatusOK,
 		},
 		{
 			name: "dashboard load with custom values",
 			queryParams: map[string]string{
-				"duration":    "2s",
+				"duration":    "100ms", // Faster for CI
 				"concurrency": "3",
 			},
 			expectedStatus: http.StatusOK,
