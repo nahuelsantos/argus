@@ -13,10 +13,8 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source code explicitly
-COPY cmd/ ./cmd/
-COPY internal/ ./internal/
-COPY static/ ./static/
+# Copy all source code
+COPY . .
 
 # Build the application (simplified, no unnecessary flags)
 RUN CGO_ENABLED=0 GOOS=linux go build \
