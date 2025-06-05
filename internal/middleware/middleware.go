@@ -140,7 +140,7 @@ func (tw *timeoutResponseWriter) tryWriteTimeout() bool {
 	defer tw.mu.Unlock()
 	if !tw.wroteHeader && !tw.timedOut {
 		tw.w.WriteHeader(http.StatusRequestTimeout)
-		tw.w.Write([]byte("Request timeout\n"))
+		_, _ = tw.w.Write([]byte("Request timeout\n"))
 		tw.wroteHeader = true
 		tw.wroteBody = true
 		tw.timedOut = true
