@@ -49,6 +49,11 @@ func (ls *LoggingService) InitLogger() {
 	}
 }
 
+// InitTestLogger initializes a silent logger for testing
+func (ls *LoggingService) InitTestLogger() {
+	logger = zap.NewNop()
+}
+
 // GenerateNodeID generates a unique node identifier
 func (ls *LoggingService) GenerateNodeID() string {
 	return fmt.Sprintf("node-%s", uuid.New().String()[:8])
