@@ -10,9 +10,6 @@ jobs:
   test:
     name: Tests
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: ['1.21']
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,7 +17,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: '1.21'
           cache: true
           cache-dependency-path: go.sum
 
@@ -28,7 +25,6 @@ jobs:
         run: go test -short -race -parallel 8 -coverprofile=coverage.out ./...
 
       - name: Upload coverage to Codecov
-        if: matrix.go-version == '1.21'
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage.out
@@ -48,11 +44,22 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
 
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v4
+      - name: Cache golangci-lint
+        uses: actions/cache@v4
         with:
-          version: v1.55.2
-          args: --timeout=30s --issues-exit-code=1
-          skip-cache: false
-          skip-pkg-cache: false
-          skip-build-cache: false 
+          path: |
+            ~/.cache/golangci-lint
+            ~/go/bin/golangci-lint
+          key: ${{ runner.os }}-golangci-lint-v1.55.2
+          restore-keys: |
+            ${{ runner.os }}-golangci-lint-
+
+      - name: Install golangci-lint
+        run: |
+          if ! command -v golangci-lint &> /dev/null; then
+            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ~/go/bin v1.55.2
+            echo "$HOME/go/bin" >> $GITHUB_PATH
+          fi
+
+      - name: Run linting
+        run: golangci-lint run --timeout=30s 
