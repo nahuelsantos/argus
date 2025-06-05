@@ -1,0 +1,69 @@
+run:
+  timeout: 2m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - gofmt
+    - goimports
+    - misspell
+  disable:
+    - gocritic  # too many style issues for now
+    - revive    # too many comment issues for now
+
+linters-settings:
+  errcheck:
+    check-type-assertions: false
+    check-blank: false
+    exclude-functions:
+      - (*os.File).Close
+      - (*net/http.Response).Body.Close
+      - io.ReadAll
+      - json.Marshal
+      - fmt.Print*
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  uniq-by-line: true
+  
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+    
+    # Ignore complexity issues in test files
+    - path: _test\.go
+      text: "complexity"
+    
+    # Ignore unchecked Body.Close() calls (common pattern)
+    - text: "Error return value of.*Body.Close.*is not checked"
+      linters:
+        - errcheck
+    
+    # Ignore unchecked io.ReadAll calls with explicit discard
+    - text: "Error return value of.*io.ReadAll.*is not checked"
+      linters:
+        - errcheck
+    
+    # Ignore unchecked json.Marshal calls with explicit discard  
+    - text: "Error return value of.*json.Marshal.*is not checked"
+      linters:
+        - errcheck
+
+output:
+  formats:
+    - format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true 

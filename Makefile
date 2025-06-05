@@ -5,7 +5,7 @@ BINARY_NAME := argus
 CMD_PATH := ./cmd/argus
 BUILD_DIR := build
 
-.PHONY: help build run start stop test lint clean
+.PHONY: help build run start stop test test-short lint clean
 
 # Default target
 .DEFAULT_GOAL := help
@@ -40,6 +40,9 @@ stop: ## Stop Argus container
 
 test: ## Run tests
 	go test -v ./...
+
+test-short: ## Run short tests (for CI)
+	go test -short -race -parallel 8 ./...
 
 lint: ## Run linter
 	golangci-lint run

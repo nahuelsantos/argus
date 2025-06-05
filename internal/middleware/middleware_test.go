@@ -122,6 +122,19 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 }
 
 func TestTimeoutMiddleware(t *testing.T) {
+	// Use shorter delays in CI/short mode
+	fastDelay := 10 * time.Millisecond
+	slowDelay := 20 * time.Millisecond
+	fastTimeout := 15 * time.Millisecond
+	slowTimeout := 25 * time.Millisecond
+
+	if testing.Short() {
+		fastDelay = 1 * time.Millisecond
+		slowDelay = 2 * time.Millisecond
+		fastTimeout = 1 * time.Millisecond
+		slowTimeout = 3 * time.Millisecond
+	}
+
 	tests := []struct {
 		name           string
 		path           string
@@ -133,32 +146,32 @@ func TestTimeoutMiddleware(t *testing.T) {
 		{
 			name:           "normal request completes",
 			path:           "/api/health",
-			timeout:        100 * time.Millisecond,
-			handlerDelay:   50 * time.Millisecond,
+			timeout:        slowTimeout,
+			handlerDelay:   fastDelay,
 			expectedStatus: http.StatusOK,
 			isLongRunning:  false,
 		},
 		{
 			name:           "normal request times out",
 			path:           "/api/slow",
-			timeout:        50 * time.Millisecond,
-			handlerDelay:   100 * time.Millisecond,
+			timeout:        fastTimeout,
+			handlerDelay:   slowDelay,
 			expectedStatus: http.StatusRequestTimeout,
 			isLongRunning:  false,
 		},
 		{
 			name:           "long running endpoint not timed out",
 			path:           "/test-metrics-scale",
-			timeout:        50 * time.Millisecond,
-			handlerDelay:   100 * time.Millisecond,
+			timeout:        fastTimeout,
+			handlerDelay:   slowDelay,
 			expectedStatus: http.StatusOK,
 			isLongRunning:  true,
 		},
 		{
 			name:           "performance test endpoint",
 			path:           "/test-logs-scale",
-			timeout:        50 * time.Millisecond,
-			handlerDelay:   100 * time.Millisecond,
+			timeout:        fastTimeout,
+			handlerDelay:   slowDelay,
 			expectedStatus: http.StatusOK,
 			isLongRunning:  true,
 		},
