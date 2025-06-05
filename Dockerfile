@@ -1,7 +1,7 @@
 # Build stage
 FROM golang:1.21-alpine AS builder
 
-# Build arguments (optional)
+# Build arguments
 ARG VERSION=dev
 ARG BUILD_TIME=unknown
 ARG GIT_COMMIT=unknown
@@ -9,22 +9,19 @@ ARG GIT_COMMIT=unknown
 # Set working directory
 WORKDIR /app
 
-# Install git for potential private dependencies
-RUN apk add --no-cache git
-
-# Copy go mod files
+# Copy go mod files first (better caching)
 COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the application (simplified, no unnecessary flags)
 RUN CGO_ENABLED=0 GOOS=linux go build \
-    -ldflags "-X 'github.com/nahuelsantos/argus/internal/config.Version=${VERSION}' \
+    -ldflags "-s -w -X 'github.com/nahuelsantos/argus/internal/config.Version=${VERSION}' \
               -X 'github.com/nahuelsantos/argus/internal/config.BuildTime=${BUILD_TIME}' \
               -X 'github.com/nahuelsantos/argus/internal/config.GitCommit=${GIT_COMMIT}'" \
-    -a -installsuffix cgo -o argus github.com/nahuelsantos/argus/cmd/argus
+    -o argus ./cmd/argus
 
 # Final stage
 FROM alpine:3.19
