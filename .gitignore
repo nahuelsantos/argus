@@ -44,7 +44,7 @@ pids
 *.pid.lock
 
 # Build artifacts
-argus
+/argus
 dist/
 build/
 
