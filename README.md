@@ -134,7 +134,6 @@ flowchart LR
 
 ```bash
 # Core Configuration
-ARGUS_SERVER_IP=localhost
 ARGUS_ENVIRONMENT=development
 ARGUS_VERSION=v0.0.1
 
