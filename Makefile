@@ -69,7 +69,7 @@ docker-run: docker-build ## Build and run Argus in Docker with ARGUS_ env vars
 		--env-file .env \
 		$(TEST_CONTAINER_IMAGE)
 	@echo "✅ Argus container started!"
-	@echo "Dashboard: http://localhost:3001"
+	@echo "Dashboard: http://localhost:3001 (or http://your-server-ip:3001)"
 	@echo "API docs: http://localhost:3001/api"
 	@echo "Health: http://localhost:3001/health"
 	@echo ""

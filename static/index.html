@@ -142,12 +142,8 @@
                 <div class="cards-grid">
                     <div class="card">
                         <h3 class="card-title">direct links</h3>
-                        <div class="card-description">
-                            <p><a href="http://localhost:9090" target="_blank">prometheus: localhost:9090</a></p>
-                            <p><a href="http://localhost:9093" target="_blank">alertmanager: localhost:9093</a></p>
-                            <p><a href="http://localhost:3000" target="_blank">grafana: localhost:3000</a></p>
-                            <p><a href="http://localhost:3100" target="_blank">loki: localhost:3100</a></p>
-                            <p><a href="http://localhost:3200" target="_blank">tempo: localhost:3200</a></p>
+                        <div class="card-description" id="direct-links">
+                            <p>Loading service URLs...</p>
                         </div>
                     </div>
                     
@@ -392,7 +388,7 @@
                         <h3>grafana configuration</h3>
                         <div class="setting-group">
                             <label for="grafana-url">endpoint url</label>
-                            <input type="text" id="grafana-url" placeholder="http://localhost:3000" class="setting-input">
+                            <input type="text" id="grafana-url" placeholder="http://dinky:3000" class="setting-input">
                         </div>
                         <div class="setting-group">
                             <label for="grafana-username">username</label>
@@ -409,7 +405,7 @@
                         <h3>prometheus configuration</h3>
                         <div class="setting-group">
                             <label for="prometheus-url">endpoint url</label>
-                            <input type="text" id="prometheus-url" placeholder="http://localhost:9090" class="setting-input">
+                            <input type="text" id="prometheus-url" placeholder="http://dinky:9090" class="setting-input">
                         </div>
                         <div class="setting-group">
                             <label for="prometheus-username">username (optional)</label>
@@ -426,7 +422,7 @@
                         <h3>loki configuration</h3>
                         <div class="setting-group">
                             <label for="loki-url">endpoint url</label>
-                            <input type="text" id="loki-url" placeholder="http://localhost:3100" class="setting-input">
+                            <input type="text" id="loki-url" placeholder="http://dinky:3100" class="setting-input">
                         </div>
                         <button class="btn test-connection-btn" data-service="loki">test connection</button>
         </div>
@@ -435,7 +431,7 @@
                         <h3>tempo configuration</h3>
                         <div class="setting-group">
                             <label for="tempo-url">endpoint url</label>
-                            <input type="text" id="tempo-url" placeholder="http://localhost:3200" class="setting-input">
+                            <input type="text" id="tempo-url" placeholder="http://dinky:3200" class="setting-input">
                         </div>
                         <button class="btn test-connection-btn" data-service="tempo">test connection</button>
         </div>

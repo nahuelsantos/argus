@@ -12,6 +12,10 @@ window.ArgusApp = {
         
         // Load configuration first, then start status checking
         await this.loadConfiguration();
+        
+        // Load LGTM settings to populate direct links
+        await this.loadSettings();
+        
         this.startStatusChecking();
     },
     
@@ -463,24 +467,31 @@ window.ArgusApp = {
     },
     
     getTestGuidance(testName, result) {
+        // Get current settings for dynamic URLs
+        const settings = this.getCurrentSettings();
+        const grafanaUrl = settings.grafana?.url || 'http://dinky:3000';
+        const prometheusUrl = settings.prometheus?.url || 'http://dinky:9090';
+        const lokiUrl = settings.loki?.url || 'http://dinky:3100';
+        const tempoUrl = settings.tempo?.url || 'http://dinky:3200';
+        
         const baseGuidance = {
             'LGTM Integration Test': [
-                '1. <a href="http://localhost:3000" target="_blank">Open Grafana</a> → Check if datasources are connected',
-                '2. <a href="http://localhost:9090" target="_blank">Open Prometheus</a> → Verify targets are up in Status > Targets',
-                '3. <a href="http://localhost:3100/ready" target="_blank">Check Loki</a> → Should return "ready"',
-                '4. <a href="http://localhost:3200/ready" target="_blank">Check Tempo</a> → Should return "ready"',
+                `1. <a href="${grafanaUrl}" target="_blank">Open Grafana</a> → Check if datasources are connected`,
+                `2. <a href="${prometheusUrl}" target="_blank">Open Prometheus</a> → Verify targets are up in Status > Targets`,
+                `3. <a href="${lokiUrl}/ready" target="_blank">Check Loki</a> → Should return "ready"`,
+                `4. <a href="${tempoUrl}/ready" target="_blank">Check Tempo</a> → Should return "ready"`,
                 '5. Review test results above for specific component status details'
             ],
             'Grafana Dashboard Test': [
-                '1. <a href="http://localhost:3000/d/argus-test-dashboard" target="_blank">Open Argus Testing Dashboard</a> (created by test)',
+                `1. <a href="${grafanaUrl}/d/argus-test-dashboard" target="_blank">Open Argus Testing Dashboard</a> (created by test)`,
                 '2. Verify all panels are visible: Performance, System Resources, LGTM Health, Metrics, Logs, Test Status',
                 '3. Check data is flowing - run some performance/data tests to populate the dashboard',
-                '4. <a href="http://localhost:3000/dashboards" target="_blank">View all dashboards</a> to confirm creation'
+                `4. <a href="${grafanaUrl}/dashboards" target="_blank">View all dashboards</a> to confirm creation`
             ],
             'Alert Rules Test': [
-                '1. <a href="http://localhost:9090/api/v1/rules" target="_blank">Check Rules API</a> - Verify Prometheus rules endpoint is accessible',
-                '2. <a href="http://localhost:9090/rules" target="_blank">View Rules Configuration</a> - See all loaded rule groups and alerts',
-                '3. <a href="http://localhost:9090/alerts" target="_blank">Monitor Active Alerts</a> - Check firing and pending alerts',
+                `1. <a href="${prometheusUrl}/api/v1/rules" target="_blank">Check Rules API</a> - Verify Prometheus rules endpoint is accessible`,
+                `2. <a href="${prometheusUrl}/rules" target="_blank">View Rules Configuration</a> - See all loaded rule groups and alerts`,
+                `3. <a href="${prometheusUrl}/alerts" target="_blank">Monitor Active Alerts</a> - Check firing and pending alerts`,
                 '4. Look for Argus-specific rules in the test results - they should be detected automatically',
                 '5. Test rule evaluation by generating system load (CPU/Memory alerts fire at >50% usage)',
                 '6. Verify alerts API accessibility and alert state tracking'
@@ -488,7 +499,7 @@ window.ArgusApp = {
             'Metrics Scale Test': [
                 '1. <strong>Important:</strong> Prometheus must be configured to scrape Argus metrics at <code>' + (this.config?.api_base_url || `${window.location.protocol}//${window.location.host}`) + '/metrics</code>',
                 '2. Verify metrics are exposed: <a href="' + (this.config?.api_base_url || `${window.location.protocol}//${window.location.host}`) + '/metrics" target="_blank">Check Argus /metrics endpoint</a>',
-                '3. <a href="http://localhost:9090" target="_blank">Open Prometheus</a> → Go to Graph tab',
+                `3. <a href="${prometheusUrl}" target="_blank">Open Prometheus</a> → Go to Graph tab`,
                 '4. Try these exact queries (copy and paste):',
                 '   • <code>custom_business_metric{type="performance_test"}</code> (main test metric)',
                 '   • <code>http_requests_total{method="GET", endpoint="/api/scale-test"}</code> (GET requests)', 
@@ -498,25 +509,25 @@ window.ArgusApp = {
                 '6. <strong>If no data:</strong> Add this to your prometheus.yml scrape_configs: <code>- job_name: "argus" static_configs: - targets: ["localhost:3001"]</code>'
             ],
             'Logs Scale Test': [
-                '1. <a href="http://localhost:3000" target="_blank">Open Grafana</a>',
+                `1. <a href="${grafanaUrl}" target="_blank">Open Grafana</a>`,
                 '2. Navigate to Explore > Loki data source',
                 '3. Use query: {service="argus"} | json',
                 '4. Filter by time range when the test was run to see generated logs'
             ],
             'Traces Scale Test': [
-                '1. <a href="http://localhost:3000" target="_blank">Open Grafana</a>',
+                `1. <a href="${grafanaUrl}" target="_blank">Open Grafana</a>`,
                 '2. Navigate to Explore > Tempo data source',
                 '3. Search for service name "argus" or operation names',
                 '4. Look for traces generated during the test timeframe'
             ],
             'Generate Metrics': [
-                '1. <a href="http://localhost:9090" target="_blank">Open Prometheus</a>',
+                `1. <a href="${prometheusUrl}" target="_blank">Open Prometheus</a>`,
                 '2. Search for "argus_test_metric" in the Graph tab',
                 '3. View the metric values and timestamps',
                 '4. Verify the metric count matches what was generated'
             ],
             'Generate Logs': [
-                '1. <a href="http://localhost:3000" target="_blank">Open Grafana</a>',
+                `1. <a href="${grafanaUrl}" target="_blank">Open Grafana</a>`,
                 '2. Go to Explore > Loki and query: {service="argus"}',
                 '3. See the structured logs generated by the test',
                 '4. Verify log count and format match expectations'
@@ -571,29 +582,42 @@ window.ArgusApp = {
         document.getElementById('traces-generated').textContent = localStorage.getItem('argus-traces-generated') || '0';
     },
 
-    // Settings Management
-    loadSettings() {
+    // Settings Management  
+    async loadSettings() {
+        // Try to get settings from backend first
+        let backendSettings = null;
+        try {
+            const baseUrl = this.config?.api_base_url || `${window.location.protocol}//${window.location.host}`;
+            const response = await fetch(`${baseUrl}/api/settings`);
+            if (response.ok) {
+                backendSettings = await response.json();
+            }
+        } catch (err) {
+            console.log('Could not load backend settings:', err);
+        }
+        
+        // Get default settings from backend or use fallback
         const defaultSettings = {
             grafana: {
-                url: 'http://localhost:3000',
+                url: 'http://dinky:3000',
                 username: 'admin',
                 password: ''
             },
             prometheus: {
-                url: 'http://localhost:9090',
+                url: 'http://dinky:9090',
                 username: '',
                 password: ''
             },
             loki: {
-                url: 'http://localhost:3100'
+                url: 'http://dinky:3100'
             },
             tempo: {
-                url: 'http://localhost:3200'
+                url: 'http://dinky:3200'
             }
         };
 
         const saved = localStorage.getItem('argus-settings');
-        const settings = saved ? JSON.parse(saved) : defaultSettings;
+        const settings = backendSettings || (saved ? JSON.parse(saved) : defaultSettings);
         
         // Populate form fields
         document.getElementById('grafana-url').value = settings.grafana?.url || defaultSettings.grafana.url;
@@ -607,7 +631,23 @@ window.ArgusApp = {
         document.getElementById('loki-url').value = settings.loki?.url || defaultSettings.loki.url;
         document.getElementById('tempo-url').value = settings.tempo?.url || defaultSettings.tempo.url;
         
+        // Update direct links with current settings
+        this.updateDirectLinks(settings);
+        
         return settings;
+    },
+
+    updateDirectLinks(settings) {
+        const directLinksContainer = document.getElementById('direct-links');
+        if (directLinksContainer) {
+            directLinksContainer.innerHTML = `
+                <p><a href="${settings.prometheus?.url || 'http://dinky:9090'}" target="_blank">prometheus: ${(settings.prometheus?.url || 'http://dinky:9090').replace('http://', '').replace('https://', '')}</a></p>
+                <p><a href="${settings.prometheus?.url?.replace(':9090', ':9093') || 'http://dinky:9093'}" target="_blank">alertmanager: ${(settings.prometheus?.url?.replace(':9090', ':9093') || 'http://dinky:9093').replace('http://', '').replace('https://', '')}</a></p>
+                <p><a href="${settings.grafana?.url || 'http://dinky:3000'}" target="_blank">grafana: ${(settings.grafana?.url || 'http://dinky:3000').replace('http://', '').replace('https://', '')}</a></p>
+                <p><a href="${settings.loki?.url || 'http://dinky:3100'}" target="_blank">loki: ${(settings.loki?.url || 'http://dinky:3100').replace('http://', '').replace('https://', '')}</a></p>
+                <p><a href="${settings.tempo?.url || 'http://dinky:3200'}" target="_blank">tempo: ${(settings.tempo?.url || 'http://dinky:3200').replace('http://', '').replace('https://', '')}</a></p>
+            `;
+        }
     },
 
     saveSettings() {
@@ -631,6 +671,9 @@ window.ArgusApp = {
         };
 
         localStorage.setItem('argus-settings', JSON.stringify(settings));
+        
+        // Update direct links with new settings
+        this.updateDirectLinks(settings);
         
         // Show feedback
         const saveBtn = document.getElementById('save-settings');

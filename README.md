@@ -59,7 +59,7 @@ graph TB
 # Run Argus
 docker run -p 3001:3001 ghcr.io/nahuelsantos/argus:latest
 
-# Access dashboard
+# Access dashboard (replace localhost with your server IP)
 open http://localhost:3001
 ```
 
@@ -92,7 +92,7 @@ make docker-test  # Build, run, and test
 
 ## Web Dashboard
 
-Access the dashboard at `http://localhost:3001`:
+Access the dashboard at `http://your-server-ip:3001`:
 
 ```mermaid
 flowchart LR
@@ -137,11 +137,11 @@ flowchart LR
 ARGUS_ENVIRONMENT=development
 ARGUS_VERSION=v0.0.1
 
-# LGTM Stack URLs
-ARGUS_GRAFANA_URL=http://localhost:3000
-ARGUS_PROMETHEUS_URL=http://localhost:9090
-ARGUS_LOKI_URL=http://localhost:3100
-ARGUS_TEMPO_URL=http://localhost:3200
+# LGTM Stack URLs (replace localhost with your server IP)
+ARGUS_GRAFANA_URL=http://dinky:3000
+ARGUS_PROMETHEUS_URL=http://dinky:9090
+ARGUS_LOKI_URL=http://dinky:3100
+ARGUS_TEMPO_URL=http://dinky:3200
 
 # Credentials
 ARGUS_GRAFANA_USERNAME=admin
