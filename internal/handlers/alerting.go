@@ -104,7 +104,7 @@ func (ah *AlertingHandlers) TestFireAlertHandler(w http.ResponseWriter, r *http.
 			},
 			Value:        rand.Float64() * 100,
 			Threshold:    ruleToFire.Threshold,
-			GeneratorURL: fmt.Sprintf("http://localhost:3001/alerts/%s", ruleToFire.ID),
+			GeneratorURL: fmt.Sprintf("%s/alerts/%s", ah.alertingService.GetBaseURL(), ruleToFire.ID),
 		}
 
 		alertManager.Mutex.Lock()
