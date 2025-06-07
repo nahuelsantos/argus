@@ -17,6 +17,7 @@ import (
 	"github.com/nahuelsantos/argus/internal/metrics"
 	"github.com/nahuelsantos/argus/internal/middleware"
 	"github.com/nahuelsantos/argus/internal/services"
+	"github.com/nahuelsantos/argus/internal/types"
 	"github.com/nahuelsantos/argus/internal/utils"
 )
 
@@ -373,11 +374,12 @@ func (ph *PerformanceHandlers) TestDashboardLoad(w http.ResponseWriter, r *http.
 		zap.Int("concurrency", concurrency),
 		zap.Int("requests", requests))
 
-	// Test dashboard endpoints - use environment-aware URLs
-	grafanaURL := utils.GetServiceURL("grafana")
-	prometheusURL := utils.GetServiceURL("prometheus")
-	lokiURL := utils.GetServiceURL("loki")
-	tempoURL := utils.GetServiceURL("tempo")
+	// Test dashboard endpoints - use LGTM settings URLs
+	lgtmSettings := types.GetDefaults()
+	grafanaURL := lgtmSettings.Grafana.URL
+	prometheusURL := lgtmSettings.Prometheus.URL
+	lokiURL := lgtmSettings.Loki.URL
+	tempoURL := lgtmSettings.Tempo.URL
 
 	dashboardEndpoints := []string{
 		grafanaURL + "/api/health",
@@ -461,11 +463,12 @@ func (ph *PerformanceHandlers) TestResourceUsage(w http.ResponseWriter, r *http.
 	// Get resource usage from various sources
 	resourceData := make(map[string]interface{})
 
-	// Get environment-aware service URLs
-	prometheusURL := utils.GetServiceURL("prometheus")
-	lokiURL := utils.GetServiceURL("loki")
-	tempoURL := utils.GetServiceURL("tempo")
-	grafanaURL := utils.GetServiceURL("grafana")
+	// Get LGTM settings URLs
+	lgtmSettings := types.GetDefaults()
+	prometheusURL := lgtmSettings.Prometheus.URL
+	lokiURL := lgtmSettings.Loki.URL
+	tempoURL := lgtmSettings.Tempo.URL
+	grafanaURL := lgtmSettings.Grafana.URL
 
 	// Test Prometheus metrics endpoint for resource data
 	if resp, err := http.Get(prometheusURL + "/api/v1/query?query=up"); err == nil {
@@ -551,10 +554,11 @@ func (ph *PerformanceHandlers) TestStorageLimits(w http.ResponseWriter, r *http.
 
 	storageData := make(map[string]interface{})
 
-	// Get environment-aware service URLs
-	prometheusURL := utils.GetServiceURL("prometheus")
-	lokiURL := utils.GetServiceURL("loki")
-	tempoURL := utils.GetServiceURL("tempo")
+	// Get LGTM settings URLs
+	lgtmSettings := types.GetDefaults()
+	prometheusURL := lgtmSettings.Prometheus.URL
+	lokiURL := lgtmSettings.Loki.URL
+	tempoURL := lgtmSettings.Tempo.URL
 
 	// Test Prometheus storage metrics
 	if resp, err := http.Get(prometheusURL + "/api/v1/query?query=prometheus_tsdb_symbol_table_size_bytes"); err == nil {
