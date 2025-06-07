@@ -294,7 +294,7 @@ func (as *AlertingService) fireAlert(rule *models.AlertRule) {
 		Annotations:  rule.Annotations,
 		Value:        rand.Float64() * 100,
 		Threshold:    rule.Threshold,
-		GeneratorURL: fmt.Sprintf("http://localhost:3001/alerts/%s", rule.ID),
+		GeneratorURL: fmt.Sprintf("%s/alerts/%s", as.config.GetAPIBaseURL(), rule.ID),
 	}
 
 	// Add to active alerts and history
@@ -423,4 +423,9 @@ func (as *AlertingService) notificationProcessor() {
 // GetAlertManager returns the alert manager instance
 func (as *AlertingService) GetAlertManager() *models.AlertManager {
 	return as.alertManager
+}
+
+// GetBaseURL returns the API base URL for the service
+func (as *AlertingService) GetBaseURL() string {
+	return as.config.GetAPIBaseURL()
 }

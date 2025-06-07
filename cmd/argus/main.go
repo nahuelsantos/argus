@@ -155,10 +155,11 @@ func main() {
 	// Start server in a goroutine
 	go func() {
 		fmt.Printf("Argus LGTM Stack Validator listening on port :3001\n")
-		fmt.Printf("Dashboard: http://localhost:3001\n")
-		fmt.Printf("API docs: http://localhost:3001/api\n")
-		fmt.Printf("Health: http://localhost:3001/health\n")
-		fmt.Printf("Metrics: http://localhost:3001/metrics\n")
+		baseURL := serviceConfig.GetAPIBaseURL()
+		fmt.Printf("Dashboard: %s\n", baseURL)
+		fmt.Printf("API docs: %s/api\n", baseURL)
+		fmt.Printf("Health: %s/health\n", baseURL)
+		fmt.Printf("Metrics: %s/metrics\n", baseURL)
 
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Failed to start server: %v", err)
