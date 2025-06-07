@@ -146,17 +146,26 @@ func TestGetEnv(t *testing.T) {
 }
 
 func TestGetDefaults(t *testing.T) {
-	// Save original env vars
+	// Save original env vars (both ARGUS_ and legacy)
 	originalEnvVars := map[string]string{
-		"GRAFANA_URL":         os.Getenv("GRAFANA_URL"),
-		"GRAFANA_USERNAME":    os.Getenv("GRAFANA_USERNAME"),
-		"GRAFANA_PASSWORD":    os.Getenv("GRAFANA_PASSWORD"),
-		"PROMETHEUS_URL":      os.Getenv("PROMETHEUS_URL"),
-		"PROMETHEUS_USERNAME": os.Getenv("PROMETHEUS_USERNAME"),
-		"PROMETHEUS_PASSWORD": os.Getenv("PROMETHEUS_PASSWORD"),
-		"ALERTMANAGER_URL":    os.Getenv("ALERTMANAGER_URL"),
-		"LOKI_URL":            os.Getenv("LOKI_URL"),
-		"TEMPO_URL":           os.Getenv("TEMPO_URL"),
+		"ARGUS_GRAFANA_URL":         os.Getenv("ARGUS_GRAFANA_URL"),
+		"ARGUS_GRAFANA_USERNAME":    os.Getenv("ARGUS_GRAFANA_USERNAME"),
+		"ARGUS_GRAFANA_PASSWORD":    os.Getenv("ARGUS_GRAFANA_PASSWORD"),
+		"ARGUS_PROMETHEUS_URL":      os.Getenv("ARGUS_PROMETHEUS_URL"),
+		"ARGUS_PROMETHEUS_USERNAME": os.Getenv("ARGUS_PROMETHEUS_USERNAME"),
+		"ARGUS_PROMETHEUS_PASSWORD": os.Getenv("ARGUS_PROMETHEUS_PASSWORD"),
+		"ARGUS_ALERTMANAGER_URL":    os.Getenv("ARGUS_ALERTMANAGER_URL"),
+		"ARGUS_LOKI_URL":            os.Getenv("ARGUS_LOKI_URL"),
+		"ARGUS_TEMPO_URL":           os.Getenv("ARGUS_TEMPO_URL"),
+		"GRAFANA_URL":               os.Getenv("GRAFANA_URL"),
+		"GRAFANA_USERNAME":          os.Getenv("GRAFANA_USERNAME"),
+		"GRAFANA_PASSWORD":          os.Getenv("GRAFANA_PASSWORD"),
+		"PROMETHEUS_URL":            os.Getenv("PROMETHEUS_URL"),
+		"PROMETHEUS_USERNAME":       os.Getenv("PROMETHEUS_USERNAME"),
+		"PROMETHEUS_PASSWORD":       os.Getenv("PROMETHEUS_PASSWORD"),
+		"ALERTMANAGER_URL":          os.Getenv("ALERTMANAGER_URL"),
+		"LOKI_URL":                  os.Getenv("LOKI_URL"),
+		"TEMPO_URL":                 os.Getenv("TEMPO_URL"),
 	}
 
 	// Clean up function
@@ -204,18 +213,18 @@ func TestGetDefaults(t *testing.T) {
 		assert.Equal(t, expected, settings)
 	})
 
-	t.Run("uses environment variables when set", func(t *testing.T) {
-		// Set specific env vars
+	t.Run("uses ARGUS_ prefixed environment variables when set", func(t *testing.T) {
+		// Set specific ARGUS_ env vars
 		envVars := map[string]string{
-			"GRAFANA_URL":         "http://custom-grafana:3000",
-			"GRAFANA_USERNAME":    "custom-admin",
-			"GRAFANA_PASSWORD":    "custom-pass",
-			"PROMETHEUS_URL":      "http://custom-prometheus:9090",
-			"PROMETHEUS_USERNAME": "prom-user",
-			"PROMETHEUS_PASSWORD": "prom-pass",
-			"ALERTMANAGER_URL":    "http://custom-alertmanager:9093",
-			"LOKI_URL":            "http://custom-loki:3100",
-			"TEMPO_URL":           "http://custom-tempo:3200",
+			"ARGUS_GRAFANA_URL":         "http://argus-grafana:3000",
+			"ARGUS_GRAFANA_USERNAME":    "argus-admin",
+			"ARGUS_GRAFANA_PASSWORD":    "argus-pass",
+			"ARGUS_PROMETHEUS_URL":      "http://argus-prometheus:9090",
+			"ARGUS_PROMETHEUS_USERNAME": "argus-prom-user",
+			"ARGUS_PROMETHEUS_PASSWORD": "argus-prom-pass",
+			"ARGUS_ALERTMANAGER_URL":    "http://argus-alertmanager:9093",
+			"ARGUS_LOKI_URL":            "http://argus-loki:3100",
+			"ARGUS_TEMPO_URL":           "http://argus-tempo:3200",
 		}
 
 		for key, value := range envVars {
@@ -227,27 +236,58 @@ func TestGetDefaults(t *testing.T) {
 
 		expected := &LGTMSettings{
 			Grafana: ServiceConfig{
-				URL:      "http://custom-grafana:3000",
-				Username: "custom-admin",
-				Password: "custom-pass",
+				URL:      "http://argus-grafana:3000",
+				Username: "argus-admin",
+				Password: "argus-pass",
 			},
 			Prometheus: ServiceConfig{
-				URL:      "http://custom-prometheus:9090",
-				Username: "prom-user",
-				Password: "prom-pass",
+				URL:      "http://argus-prometheus:9090",
+				Username: "argus-prom-user",
+				Password: "argus-prom-pass",
 			},
 			AlertManager: ServiceConfig{
-				URL: "http://custom-alertmanager:9093",
+				URL: "http://argus-alertmanager:9093",
 			},
 			Loki: ServiceConfig{
-				URL: "http://custom-loki:3100",
+				URL: "http://argus-loki:3100",
 			},
 			Tempo: ServiceConfig{
-				URL: "http://custom-tempo:3200",
+				URL: "http://argus-tempo:3200",
 			},
 		}
 
 		assert.Equal(t, expected, settings)
+	})
+
+	t.Run("ARGUS_ variables take precedence over legacy variables", func(t *testing.T) {
+		// Set both ARGUS_ and legacy vars, ARGUS_ should win
+		os.Setenv("ARGUS_GRAFANA_URL", "http://argus-grafana:3000")
+		os.Setenv("GRAFANA_URL", "http://legacy-grafana:3000")
+		os.Setenv("ARGUS_PROMETHEUS_URL", "http://argus-prometheus:9090")
+		os.Setenv("PROMETHEUS_URL", "http://legacy-prometheus:9090")
+		defer cleanup()
+
+		settings := GetDefaults()
+
+		assert.Equal(t, "http://argus-grafana:3000", settings.Grafana.URL)
+		assert.Equal(t, "http://argus-prometheus:9090", settings.Prometheus.URL)
+	})
+
+	t.Run("falls back to legacy variables when ARGUS_ not set", func(t *testing.T) {
+		// Clear all first
+		for key := range originalEnvVars {
+			os.Unsetenv(key)
+		}
+
+		// Set only legacy vars
+		os.Setenv("GRAFANA_URL", "http://legacy-grafana:3000")
+		os.Setenv("PROMETHEUS_URL", "http://legacy-prometheus:9090")
+		defer cleanup()
+
+		settings := GetDefaults()
+
+		assert.Equal(t, "http://legacy-grafana:3000", settings.Grafana.URL)
+		assert.Equal(t, "http://legacy-prometheus:9090", settings.Prometheus.URL)
 	})
 
 	t.Run("mixes defaults and env vars", func(t *testing.T) {

@@ -286,36 +286,19 @@ func (bh *BasicHandlers) MemoryLoadHandler(w http.ResponseWriter, r *http.Reques
 
 // LGTMStatusHandler checks the status of LGTM stack components
 func (bh *BasicHandlers) LGTMStatusHandler(w http.ResponseWriter, r *http.Request) {
-	// For Docker networks (service names)
+	// Use environment-aware service URLs
 	services := map[string]string{
-		"prometheus":   "http://prometheus:9090/-/healthy",
-		"alertmanager": "http://alertmanager:9093/-/healthy",
-		"grafana":      "http://grafana:3000/api/health",
-		"loki":         "http://loki:3100/ready",
-		"tempo":        "http://tempo:3200/ready",
-	}
-
-	// For local development, try localhost as fallback
-	localServices := map[string]string{
-		"prometheus":   "http://localhost:9090/-/healthy",
-		"alertmanager": "http://localhost:9093/-/healthy",
-		"grafana":      "http://localhost:3000/api/health",
-		"loki":         "http://localhost:3100/ready",
-		"tempo":        "http://localhost:3200/ready",
+		"prometheus":   utils.GetServiceURL("prometheus") + "/-/healthy",
+		"alertmanager": utils.GetServiceURL("alertmanager") + "/-/healthy",
+		"grafana":      utils.GetServiceURL("grafana") + "/api/health",
+		"loki":         utils.GetServiceURL("loki") + "/ready",
+		"tempo":        utils.GetServiceURL("tempo") + "/ready",
 	}
 
 	status := make(map[string]interface{})
 
 	for service, url := range services {
 		serviceStatus := bh.checkServiceHealth(url)
-
-		// If docker service failed, try localhost
-		if serviceStatus == "offline" {
-			if localURL, exists := localServices[service]; exists {
-				serviceStatus = bh.checkServiceHealth(localURL)
-			}
-		}
-
 		status[service] = serviceStatus
 	}
 

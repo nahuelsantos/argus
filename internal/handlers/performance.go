@@ -373,16 +373,21 @@ func (ph *PerformanceHandlers) TestDashboardLoad(w http.ResponseWriter, r *http.
 		zap.Int("concurrency", concurrency),
 		zap.Int("requests", requests))
 
-	// Test dashboard endpoints
+	// Test dashboard endpoints - use environment-aware URLs
+	grafanaURL := utils.GetServiceURL("grafana")
+	prometheusURL := utils.GetServiceURL("prometheus")
+	lokiURL := utils.GetServiceURL("loki")
+	tempoURL := utils.GetServiceURL("tempo")
+
 	dashboardEndpoints := []string{
-		"http://grafana:3000/api/health",
-		"http://grafana:3000/api/datasources",
-		"http://grafana:3000/api/dashboards/home",
-		"http://grafana:3000/api/search",
-		"http://prometheus:9090/api/v1/query?query=up",
-		"http://prometheus:9090/api/v1/targets",
-		"http://loki:3100/ready",
-		"http://tempo:3200/ready",
+		grafanaURL + "/api/health",
+		grafanaURL + "/api/datasources",
+		grafanaURL + "/api/dashboards/home",
+		grafanaURL + "/api/search",
+		prometheusURL + "/api/v1/query?query=up",
+		prometheusURL + "/api/v1/targets",
+		lokiURL + "/ready",
+		tempoURL + "/ready",
 	}
 
 	var wg sync.WaitGroup
@@ -456,8 +461,14 @@ func (ph *PerformanceHandlers) TestResourceUsage(w http.ResponseWriter, r *http.
 	// Get resource usage from various sources
 	resourceData := make(map[string]interface{})
 
+	// Get environment-aware service URLs
+	prometheusURL := utils.GetServiceURL("prometheus")
+	lokiURL := utils.GetServiceURL("loki")
+	tempoURL := utils.GetServiceURL("tempo")
+	grafanaURL := utils.GetServiceURL("grafana")
+
 	// Test Prometheus metrics endpoint for resource data
-	if resp, err := http.Get("http://prometheus:9090/api/v1/query?query=up"); err == nil {
+	if resp, err := http.Get(prometheusURL + "/api/v1/query?query=up"); err == nil {
 		defer resp.Body.Close()
 		if body, err := io.ReadAll(resp.Body); err == nil {
 			upTargets := strings.Count(string(body), `"value":[`)
@@ -466,7 +477,7 @@ func (ph *PerformanceHandlers) TestResourceUsage(w http.ResponseWriter, r *http.
 	}
 
 	// Test Loki metrics
-	if resp, err := http.Get("http://loki:3100/metrics"); err == nil {
+	if resp, err := http.Get(lokiURL + "/metrics"); err == nil {
 		defer resp.Body.Close()
 		if body, err := io.ReadAll(resp.Body); err == nil {
 			bodyStr := string(body)
@@ -480,7 +491,7 @@ func (ph *PerformanceHandlers) TestResourceUsage(w http.ResponseWriter, r *http.
 	}
 
 	// Test Tempo status
-	if resp, err := http.Get("http://tempo:3200/status"); err == nil {
+	if resp, err := http.Get(tempoURL + "/status"); err == nil {
 		defer resp.Body.Close()
 		resourceData["tempo_status"] = "accessible"
 	} else {
@@ -488,7 +499,7 @@ func (ph *PerformanceHandlers) TestResourceUsage(w http.ResponseWriter, r *http.
 	}
 
 	// Test Grafana health
-	if resp, err := http.Get("http://grafana:3000/api/health"); err == nil {
+	if resp, err := http.Get(grafanaURL + "/api/health"); err == nil {
 		defer resp.Body.Close()
 		if resp.StatusCode == 200 {
 			resourceData["grafana_health"] = "healthy"
@@ -540,8 +551,13 @@ func (ph *PerformanceHandlers) TestStorageLimits(w http.ResponseWriter, r *http.
 
 	storageData := make(map[string]interface{})
 
+	// Get environment-aware service URLs
+	prometheusURL := utils.GetServiceURL("prometheus")
+	lokiURL := utils.GetServiceURL("loki")
+	tempoURL := utils.GetServiceURL("tempo")
+
 	// Test Prometheus storage metrics
-	if resp, err := http.Get("http://prometheus:9090/api/v1/query?query=prometheus_tsdb_symbol_table_size_bytes"); err == nil {
+	if resp, err := http.Get(prometheusURL + "/api/v1/query?query=prometheus_tsdb_symbol_table_size_bytes"); err == nil {
 		defer resp.Body.Close()
 		storageData["prometheus_storage_accessible"] = true
 	} else {
@@ -549,7 +565,7 @@ func (ph *PerformanceHandlers) TestStorageLimits(w http.ResponseWriter, r *http.
 	}
 
 	// Test Loki ingestion rate
-	if resp, err := http.Get("http://loki:3100/metrics"); err == nil {
+	if resp, err := http.Get(lokiURL + "/metrics"); err == nil {
 		defer resp.Body.Close()
 		if body, err := io.ReadAll(resp.Body); err == nil {
 			// Look for ingestion rate metrics
@@ -559,7 +575,7 @@ func (ph *PerformanceHandlers) TestStorageLimits(w http.ResponseWriter, r *http.
 	}
 
 	// Test Tempo storage
-	if resp, err := http.Get("http://tempo:3200/status"); err == nil {
+	if resp, err := http.Get(tempoURL + "/status"); err == nil {
 		defer resp.Body.Close()
 		storageData["tempo_storage_accessible"] = true
 	} else {
