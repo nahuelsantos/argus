@@ -27,11 +27,7 @@ type ServiceConfig struct {
 func GetServiceConfig() *ServiceConfig {
 	environment := os.Getenv("ARGUS_ENVIRONMENT")
 	if environment == "" {
-		// Fallback to legacy ENVIRONMENT variable
-		environment = os.Getenv("ENVIRONMENT")
-		if environment == "" {
-			environment = "development"
-		}
+		environment = "development"
 	}
 
 	return &ServiceConfig{
@@ -43,25 +39,12 @@ func GetServiceConfig() *ServiceConfig {
 	}
 }
 
-// GetAPIBaseURL returns the API base URL based on ARGUS_SERVER_IP environment variable
+// GetAPIBaseURL returns the API base URL - only used for startup logs
+// Frontend automatically detects the correct URL from window.location
 func (sc *ServiceConfig) GetAPIBaseURL() string {
-	serverIP := os.Getenv("ARGUS_SERVER_IP")
-	if serverIP == "" {
-		// Fallback to legacy SERVER_IP variable
-		serverIP = os.Getenv("SERVER_IP")
-	}
-	if serverIP != "" {
-		// Use ARGUS_SERVER_IP (could be localhost for dev, or actual IP for production)
-		return "http://" + serverIP + ":3001"
-	}
-
-	// Smart defaults based on environment
-	if sc.Environment == "development" {
-		return "http://localhost:3001"
-	}
-
-	// For production/docker, use container name
-	return "http://argus:3001"
+	// Always show localhost since this is just for startup logs
+	// and the actual URL depends on how the user accesses the service
+	return "http://localhost:3001"
 }
 
 // TracingConfig holds OpenTelemetry configuration
@@ -91,11 +74,6 @@ func GetVersion() string {
 
 	// 2. Environment variable (for runtime override)
 	if env := os.Getenv("ARGUS_VERSION"); env != "" {
-		return env
-	}
-
-	// Fallback to legacy SERVICE_VERSION variable
-	if env := os.Getenv("SERVICE_VERSION"); env != "" {
 		return env
 	}
 

@@ -12,15 +12,8 @@ import (
 )
 
 func TestGetServiceConfig(t *testing.T) {
-	// Save original environment variables
-	originalEnv := os.Getenv("ENVIRONMENT")
 	originalArgusEnv := os.Getenv("ARGUS_ENVIRONMENT")
 	defer func() {
-		if originalEnv == "" {
-			os.Unsetenv("ENVIRONMENT")
-		} else {
-			os.Setenv("ENVIRONMENT", originalEnv)
-		}
 		if originalArgusEnv == "" {
 			os.Unsetenv("ARGUS_ENVIRONMENT")
 		} else {
@@ -64,7 +57,7 @@ func TestGetServiceConfig(t *testing.T) {
 			expectedEnv: "development",
 		},
 		{
-			name:        "ARGUS_ENVIRONMENT takes precedence",
+			name:        "ARGUS_ENVIRONMENT sets environment",
 			envValue:    "production",
 			setEnv:      true,
 			expectedEnv: "production",
@@ -73,18 +66,12 @@ func TestGetServiceConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clear both environment variables first
-			os.Unsetenv("ENVIRONMENT")
+			// Clear environment variable first
 			os.Unsetenv("ARGUS_ENVIRONMENT")
 
 			// Setup
 			if tt.setEnv {
-				if tt.name == "ARGUS_ENVIRONMENT takes precedence" {
-					os.Setenv("ARGUS_ENVIRONMENT", tt.envValue)
-					os.Setenv("ENVIRONMENT", "should-be-ignored") // Should be ignored
-				} else {
-					os.Setenv("ENVIRONMENT", tt.envValue)
-				}
+				os.Setenv("ARGUS_ENVIRONMENT", tt.envValue)
 			}
 
 			// Test
@@ -104,146 +91,13 @@ func TestGetServiceConfig(t *testing.T) {
 }
 
 func TestServiceConfig_GetAPIBaseURL(t *testing.T) {
-	// Save original environment variables
-	originalServerIP := os.Getenv("SERVER_IP")
-	originalArgusServerIP := os.Getenv("ARGUS_SERVER_IP")
-	originalArgusEnv := os.Getenv("ARGUS_ENVIRONMENT")
-	originalEnv := os.Getenv("ENVIRONMENT")
-	defer func() {
-		if originalServerIP == "" {
-			os.Unsetenv("SERVER_IP")
-		} else {
-			os.Setenv("SERVER_IP", originalServerIP)
-		}
-		if originalArgusServerIP == "" {
-			os.Unsetenv("ARGUS_SERVER_IP")
-		} else {
-			os.Setenv("ARGUS_SERVER_IP", originalArgusServerIP)
-		}
-		if originalArgusEnv == "" {
-			os.Unsetenv("ARGUS_ENVIRONMENT")
-		} else {
-			os.Setenv("ARGUS_ENVIRONMENT", originalArgusEnv)
-		}
-		if originalEnv == "" {
-			os.Unsetenv("ENVIRONMENT")
-		} else {
-			os.Setenv("ENVIRONMENT", originalEnv)
-		}
-	}()
-
-	tests := []struct {
-		name           string
-		serverIP       string
-		environment    string
-		setServerIP    bool
-		setEnvironment bool
-		expectedURL    string
-	}{
-		{
-			name:        "default development URL when SERVER_IP not set",
-			setServerIP: false,
-			expectedURL: "http://localhost:3001",
-		},
-		{
-			name:        "localhost development URL",
-			serverIP:    "localhost",
-			setServerIP: true,
-			expectedURL: "http://localhost:3001",
-		},
-		{
-			name:        "production IP address",
-			serverIP:    "192.168.1.100",
-			setServerIP: true,
-			expectedURL: "http://192.168.1.100:3001",
-		},
-		{
-			name:           "production mode with no ARGUS_SERVER_IP uses container name",
-			environment:    "production",
-			setEnvironment: true,
-			setServerIP:    false,
-			expectedURL:    "http://argus:3001",
-		},
-		{
-			name:        "ARGUS_SERVER_IP takes precedence over legacy SERVER_IP",
-			serverIP:    "argus-preferred.example.com",
-			setServerIP: true,
-			expectedURL: "http://argus-preferred.example.com:3001",
-		},
-		{
-			name:        "domain name",
-			serverIP:    "argus.example.com",
-			setServerIP: true,
-			expectedURL: "http://argus.example.com:3001",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Clear all environment variables first
-			os.Unsetenv("SERVER_IP")
-			os.Unsetenv("ARGUS_SERVER_IP")
-			os.Unsetenv("ARGUS_ENVIRONMENT")
-			os.Unsetenv("ENVIRONMENT")
-
-			// Setup
-			if tt.setServerIP {
-				os.Setenv("ARGUS_SERVER_IP", tt.serverIP)
-			}
-			if tt.setEnvironment {
-				os.Setenv("ARGUS_ENVIRONMENT", tt.environment)
-			}
-
-			// Test
-			config := GetServiceConfig()
-			url := config.GetAPIBaseURL()
-
-			// Assertions
-			assert.Equal(t, tt.expectedURL, url)
-		})
-	}
+	// GetAPIBaseURL now always returns localhost since frontend auto-detects the actual URL
+	config := GetServiceConfig()
+	url := config.GetAPIBaseURL()
+	assert.Equal(t, "http://localhost:3001", url)
 }
 
-func TestArgusServerIPFallback(t *testing.T) {
-	// Save original environment variables
-	originalServerIP := os.Getenv("SERVER_IP")
-	originalArgusServerIP := os.Getenv("ARGUS_SERVER_IP")
-
-	defer func() {
-		if originalServerIP == "" {
-			os.Unsetenv("SERVER_IP")
-		} else {
-			os.Setenv("SERVER_IP", originalServerIP)
-		}
-		if originalArgusServerIP == "" {
-			os.Unsetenv("ARGUS_SERVER_IP")
-		} else {
-			os.Setenv("ARGUS_SERVER_IP", originalArgusServerIP)
-		}
-	}()
-
-	t.Run("falls back to legacy SERVER_IP when ARGUS_SERVER_IP not set", func(t *testing.T) {
-		// Clear ARGUS_SERVER_IP, set legacy SERVER_IP
-		os.Unsetenv("ARGUS_SERVER_IP")
-		os.Setenv("SERVER_IP", "legacy.example.com")
-
-		config := GetServiceConfig()
-		url := config.GetAPIBaseURL()
-
-		assert.Equal(t, "http://legacy.example.com:3001", url)
-	})
-
-	t.Run("ARGUS_SERVER_IP takes precedence over SERVER_IP", func(t *testing.T) {
-		// Set both, ARGUS_SERVER_IP should win
-		os.Setenv("ARGUS_SERVER_IP", "new.example.com")
-		os.Setenv("SERVER_IP", "old.example.com")
-
-		config := GetServiceConfig()
-		url := config.GetAPIBaseURL()
-
-		assert.Equal(t, "http://new.example.com:3001", url)
-	})
-}
+// Removed TestArgusHostnameFallback - no longer needed since we simplified the logic
 
 func TestGetTracingConfig(t *testing.T) {
 	config := GetTracingConfig()
@@ -288,7 +142,6 @@ func TestGetVersion(t *testing.T) {
 	t.Run("returns ARGUS_VERSION when build-time not set", func(t *testing.T) {
 		// Clear build-time version
 		Version = ""
-		os.Unsetenv("SERVICE_VERSION")
 
 		// Set ARGUS_VERSION
 		os.Setenv("ARGUS_VERSION", "v2.0.0-argus")
@@ -297,23 +150,10 @@ func TestGetVersion(t *testing.T) {
 		assert.Equal(t, "v2.0.0-argus", version)
 	})
 
-	t.Run("returns SERVICE_VERSION when ARGUS_VERSION not set", func(t *testing.T) {
-		// Clear build-time version and ARGUS_VERSION
-		Version = ""
-		os.Unsetenv("ARGUS_VERSION")
-
-		// Set legacy SERVICE_VERSION
-		os.Setenv("SERVICE_VERSION", "v2.0.0-legacy")
-
-		version := GetVersion()
-		assert.Equal(t, "v2.0.0-legacy", version)
-	})
-
 	t.Run("returns git version when others not available", func(t *testing.T) {
 		// Clear all version sources
 		Version = ""
 		os.Unsetenv("ARGUS_VERSION")
-		os.Unsetenv("SERVICE_VERSION")
 
 		version := GetVersion()
 
@@ -330,7 +170,7 @@ func TestGetVersion(t *testing.T) {
 	t.Run("returns fallback when nothing else available", func(t *testing.T) {
 		// Clear everything
 		Version = ""
-		os.Unsetenv("SERVICE_VERSION")
+		os.Unsetenv("ARGUS_VERSION")
 
 		// This test is harder to force since git might be available
 		// But we can at least ensure the function doesn't panic
@@ -340,7 +180,7 @@ func TestGetVersion(t *testing.T) {
 
 	t.Run("priority order: build-time > environment > git > fallback", func(t *testing.T) {
 		// Set environment but also build-time
-		os.Setenv("SERVICE_VERSION", "v2.0.0-env")
+		os.Setenv("ARGUS_VERSION", "v2.0.0-env")
 		Version = "v1.2.3-build"
 
 		version := GetVersion()
