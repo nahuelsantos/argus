@@ -40,11 +40,27 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
+            # Tag with the actual git tag (e.g., v1.0.0)
             type=ref,event=tag
+            # Semantic version tags (e.g., 1.0.0, 1.0, 1)
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
+            # SHA-based tags for traceability
             type=sha,prefix=sha-
+            # Latest tag for newest release
+            type=raw,value=latest
+          flavor: |
+            # Don't auto-add latest to prevent conflicts
+            latest=false
+
+      - name: Show Docker tags that will be created
+        run: |
+          echo "🏷️  Docker tags that will be created:"
+          echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n' | sed 's/^/  - /'
+          echo ""
+          echo "📦 Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          echo "🏗️  Version: ${{ github.ref_name }}"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -59,4 +75,17 @@ jobs:
             BUILD_TIME=${{ github.event.head_commit.timestamp }}
             GIT_COMMIT=${{ github.sha }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max 
+          cache-to: type=gha,mode=max
+
+      - name: Deployment Summary
+        run: |
+          echo "🎉 Deployment completed successfully!"
+          echo ""
+          echo "📦 Published images:"
+          echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n' | sed 's/^/  - /'
+          echo ""
+          echo "🔗 Pull commands:"
+          echo "  - docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+          echo "  - docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}"
+          echo ""
+          echo "✅ Both 'latest' and '${{ github.ref_name }}' tags are now available!" 
