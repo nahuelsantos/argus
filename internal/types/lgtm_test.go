@@ -259,46 +259,15 @@ func TestGetDefaults(t *testing.T) {
 		assert.Equal(t, expected, settings)
 	})
 
-	t.Run("ARGUS_ variables take precedence over legacy variables", func(t *testing.T) {
-		// Set both ARGUS_ and legacy vars, ARGUS_ should win
-		os.Setenv("ARGUS_GRAFANA_URL", "http://argus-grafana:3000")
-		os.Setenv("GRAFANA_URL", "http://legacy-grafana:3000")
-		os.Setenv("ARGUS_PROMETHEUS_URL", "http://argus-prometheus:9090")
-		os.Setenv("PROMETHEUS_URL", "http://legacy-prometheus:9090")
-		defer cleanup()
-
-		settings := GetDefaults()
-
-		assert.Equal(t, "http://argus-grafana:3000", settings.Grafana.URL)
-		assert.Equal(t, "http://argus-prometheus:9090", settings.Prometheus.URL)
-	})
-
-	t.Run("falls back to legacy variables when ARGUS_ not set", func(t *testing.T) {
-		// Clear all first
-		for key := range originalEnvVars {
-			os.Unsetenv(key)
-		}
-
-		// Set only legacy vars
-		os.Setenv("GRAFANA_URL", "http://legacy-grafana:3000")
-		os.Setenv("PROMETHEUS_URL", "http://legacy-prometheus:9090")
-		defer cleanup()
-
-		settings := GetDefaults()
-
-		assert.Equal(t, "http://legacy-grafana:3000", settings.Grafana.URL)
-		assert.Equal(t, "http://legacy-prometheus:9090", settings.Prometheus.URL)
-	})
-
 	t.Run("mixes defaults and env vars", func(t *testing.T) {
 		// Clear all first
 		for key := range originalEnvVars {
 			os.Unsetenv(key)
 		}
 
-		// Set only some env vars
-		os.Setenv("GRAFANA_URL", "http://env-grafana:3000")
-		os.Setenv("LOKI_URL", "http://env-loki:3100")
+		// Set only some ARGUS_ prefixed env vars
+		os.Setenv("ARGUS_GRAFANA_URL", "http://env-grafana:3000")
+		os.Setenv("ARGUS_LOKI_URL", "http://env-loki:3100")
 		defer cleanup()
 
 		settings := GetDefaults()

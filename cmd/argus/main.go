@@ -120,9 +120,9 @@ func main() {
 	// Configuration endpoint for frontend
 	mux.HandleFunc("/config", func(w http.ResponseWriter, r *http.Request) {
 		config := map[string]interface{}{
-			"api_base_url": serviceConfig.GetAPIBaseURL(),
-			"version":      serviceConfig.Version,
-			"environment":  serviceConfig.Environment,
+			"version":     serviceConfig.Version,
+			"environment": serviceConfig.Environment,
+			// Removed api_base_url - frontend will auto-detect from window.location
 		}
 
 		w.Header().Set("Content-Type", "application/json")

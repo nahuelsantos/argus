@@ -286,13 +286,19 @@ func (bh *BasicHandlers) MemoryLoadHandler(w http.ResponseWriter, r *http.Reques
 
 // LGTMStatusHandler checks the status of LGTM stack components
 func (bh *BasicHandlers) LGTMStatusHandler(w http.ResponseWriter, r *http.Request) {
-	// Use environment-aware service URLs
+	// Get LGTM settings which respects environment and ARGUS_ variables
+	settings := getGlobalSettings()
+	if settings == nil {
+		settings = types.GetDefaults()
+	}
+
+	// Use actual configured URLs from settings
 	services := map[string]string{
-		"prometheus":   utils.GetServiceURL("prometheus") + "/-/healthy",
-		"alertmanager": utils.GetServiceURL("alertmanager") + "/-/healthy",
-		"grafana":      utils.GetServiceURL("grafana") + "/api/health",
-		"loki":         utils.GetServiceURL("loki") + "/ready",
-		"tempo":        utils.GetServiceURL("tempo") + "/ready",
+		"prometheus":   settings.Prometheus.URL + "/-/healthy",
+		"alertmanager": settings.AlertManager.URL + "/-/healthy",
+		"grafana":      settings.Grafana.URL + "/api/health",
+		"loki":         settings.Loki.URL + "/ready",
+		"tempo":        settings.Tempo.URL + "/ready",
 	}
 
 	status := make(map[string]interface{})

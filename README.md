@@ -172,9 +172,10 @@ flowchart TD
     classDef start fill:#f9e2af,stroke:#f38ba8,stroke-width:2px,color:#11111b
     classDef process fill:#89b4fa,stroke:#74c7ec,stroke-width:2px,color:#11111b
     classDef decision fill:#fab387,stroke:#f38ba8,stroke-width:2px,color:#11111b
-    classDef end fill:#a6e3a1,stroke:#94e2d5,stroke-width:2px,color:#11111b
+    classDef endNode fill:#a6e3a1,stroke:#94e2d5,stroke-width:2px,color:#11111b
     
-    class Start,End start
+    class Start start
+    class End endNode
     class Config,Connect,Dash,Data,Verify,Report,Error process
     class Health decision
 ```
