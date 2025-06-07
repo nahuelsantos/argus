@@ -15,9 +15,10 @@ window.ArgusApp = {
     
     async loadConfiguration() {
         try {
-            // Always use localhost for internal network
+            // Use current hostname and port for API calls
+            const baseUrl = `${window.location.protocol}//${window.location.host}`;
             const configEndpoints = [
-                'http://localhost:3001/config',
+                `${baseUrl}/config`,
             ];
             
             for (const endpoint of configEndpoints) {
@@ -60,7 +61,7 @@ window.ArgusApp = {
             
             if (!this.config) {
                 this.config = {
-                    api_base_url: 'http://localhost:3001',
+                    api_base_url: baseUrl,
                     version: 'v0.0.1',
                     environment: 'fallback'
                 };
@@ -68,9 +69,10 @@ window.ArgusApp = {
             
             this.checkLGTMStatus();
         } catch (error) {
-            // Fallback to localhost
+            // Fallback to current host
+            const baseUrl = `${window.location.protocol}//${window.location.host}`;
             this.config = {
-                api_base_url: 'http://localhost:3001',
+                api_base_url: baseUrl,
                 version: 'v0.0.1',
                 environment: 'fallback'
             };
@@ -220,7 +222,8 @@ window.ArgusApp = {
     async checkLGTMStatus() {
         // Use the new backend endpoint that actually checks LGTM services
         try {
-            const response = await fetch('http://localhost:3001/lgtm-status', {
+            const baseUrl = this.config?.api_base_url || `${window.location.protocol}//${window.location.host}`;
+            const response = await fetch(`${baseUrl}/lgtm-status`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -273,7 +276,8 @@ window.ArgusApp = {
         this.showStatusBar();
         this.updateStatusBar('Starting test...', 10);
         
-        const fullUrl = `http://localhost:3001${endpoint}${params}`;
+        const baseUrl = this.config?.api_base_url || `${window.location.protocol}//${window.location.host}`;
+        const fullUrl = `${baseUrl}${endpoint}${params}`;
         const curlCommand = `curl "${fullUrl}"`;
         
         // Use regular fetch for all tests (no more SSE complexity)
@@ -471,8 +475,8 @@ window.ArgusApp = {
                 '6. Verify alerts API accessibility and alert state tracking'
             ],
             'Metrics Scale Test': [
-                '1. <strong>Important:</strong> Prometheus must be configured to scrape Argus metrics at <code>http://localhost:3001/metrics</code>',
-                '2. Verify metrics are exposed: <a href="http://localhost:3001/metrics" target="_blank">Check Argus /metrics endpoint</a>',
+                '1. <strong>Important:</strong> Prometheus must be configured to scrape Argus metrics at <code>' + (this.config?.api_base_url || `${window.location.protocol}//${window.location.host}`) + '/metrics</code>',
+                '2. Verify metrics are exposed: <a href="' + (this.config?.api_base_url || `${window.location.protocol}//${window.location.host}`) + '/metrics" target="_blank">Check Argus /metrics endpoint</a>',
                 '3. <a href="http://localhost:9090" target="_blank">Open Prometheus</a> → Go to Graph tab',
                 '4. Try these exact queries (copy and paste):',
                 '   • <code>custom_business_metric{type="performance_test"}</code> (main test metric)',
@@ -629,7 +633,8 @@ window.ArgusApp = {
         }, 2000);
 
         // Also save to backend
-        fetch('http://localhost:3001/api/settings', {
+        const baseUrl = this.config?.api_base_url || `${window.location.protocol}//${window.location.host}`;
+        fetch(`${baseUrl}/api/settings`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(settings)
@@ -655,7 +660,8 @@ window.ArgusApp = {
         }
         
         try {
-            const response = await fetch(`http://localhost:3001/api/test-connection/${service}`, {
+            const baseUrl = this.config?.api_base_url || `${window.location.protocol}//${window.location.host}`;
+            const response = await fetch(`${baseUrl}/api/test-connection/${service}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(settings[service])
