@@ -158,48 +158,61 @@ cp .env.example .env
 Edit `.env` with your actual values:
 
 ```bash
-# LGTM Stack Default Credentials
-GRAFANA_USERNAME=admin
-GRAFANA_PASSWORD=your-grafana-password
-PROMETHEUS_USERNAME=
-PROMETHEUS_PASSWORD=
+# ========================================
+# ARGUS CORE CONFIGURATION
+# ========================================
 
-# Alerting Service Credentials
-ALERTING_USERNAME=admin
-ALERTING_PASSWORD=your-secure-password-here
+# Server configuration
+ARGUS_SERVER_IP=localhost               # Hostname/IP for external access
+ARGUS_ENVIRONMENT=development           # Environment: development, staging, production  
+ARGUS_VERSION=v0.0.1                   # Service version override (optional)
 
-# LGTM Stack Service URLs (if different from defaults)
-GRAFANA_URL=http://localhost:3000
-PROMETHEUS_URL=http://localhost:9090
-LOKI_URL=http://localhost:3100
-TEMPO_URL=http://localhost:3200
+# ========================================
+# LGTM STACK SERVICE URLS
+# ========================================
 
-# Optional: Override default timeouts (in seconds)
-LGTM_TIMEOUT=8
-HTTP_TIMEOUT=30
+# Service URLs (development defaults to localhost, production to container names)
+ARGUS_GRAFANA_URL=http://localhost:3000
+ARGUS_PROMETHEUS_URL=http://localhost:9090
+ARGUS_LOKI_URL=http://localhost:3100
+ARGUS_TEMPO_URL=http://localhost:3200
+ARGUS_ALERTMANAGER_URL=http://localhost:9093
 
-# Optional: Environment and version override
-ARGUS_ENVIRONMENT=development
-ARGUS_VERSION=v0.0.1
+# ========================================
+# LGTM STACK CREDENTIALS
+# ========================================
+
+# Grafana credentials
+ARGUS_GRAFANA_USERNAME=admin
+ARGUS_GRAFANA_PASSWORD=admin
+
+# Prometheus credentials (usually none for local dev)
+ARGUS_PROMETHEUS_USERNAME=
+ARGUS_PROMETHEUS_PASSWORD=
 ```
 
 ### Legacy Environment Variables (Deprecated)
 
+⚠️ **These variables are deprecated but still supported for backward compatibility. Use ARGUS_ prefixed versions instead.**
+
 ```bash
-# LGTM Stack URLs
+# Legacy LGTM Stack URLs (use ARGUS_*_URL instead)
 PROMETHEUS_URL=http://prometheus:9090
 GRAFANA_URL=http://grafana:3000  
 LOKI_URL=http://loki:3100
 TEMPO_URL=http://tempo:3200
+ALERTMANAGER_URL=http://alertmanager:9093
 
-# Service Configuration
-SERVER_IP=localhost              # For external access
-ENVIRONMENT=production           # Environment identifier
-SERVICE_VERSION=v1.0.0          # Version tracking
+# Legacy Service Configuration (use ARGUS_* instead)
+SERVER_IP=localhost              # Use ARGUS_SERVER_IP
+ENVIRONMENT=production           # Use ARGUS_ENVIRONMENT
+SERVICE_VERSION=v1.0.0          # Use ARGUS_VERSION
 
-# OpenTelemetry Configuration  
-OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-OTEL_SERVICE_NAME=argus
+# Legacy Credentials (use ARGUS_* instead)
+GRAFANA_USERNAME=admin           # Use ARGUS_GRAFANA_USERNAME
+GRAFANA_PASSWORD=admin           # Use ARGUS_GRAFANA_PASSWORD
+PROMETHEUS_USERNAME=             # Use ARGUS_PROMETHEUS_USERNAME
+PROMETHEUS_PASSWORD=             # Use ARGUS_PROMETHEUS_PASSWORD
 ```
 
 ## 🏗️ Architecture

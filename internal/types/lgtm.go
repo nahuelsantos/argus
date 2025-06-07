@@ -26,27 +26,38 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
+// getEnvWithFallback tries ARGUS_ prefixed variable first, then falls back to legacy variable
+func getEnvWithFallback(argusKey, legacyKey, defaultValue string) string {
+	if value := os.Getenv(argusKey); value != "" {
+		return value
+	}
+	if value := os.Getenv(legacyKey); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 // GetDefaults returns default LGTM settings for local development
 func GetDefaults() *LGTMSettings {
 	return &LGTMSettings{
 		Grafana: ServiceConfig{
-			URL:      getEnv("GRAFANA_URL", "http://localhost:3000"),
-			Username: getEnv("GRAFANA_USERNAME", "admin"),
-			Password: getEnv("GRAFANA_PASSWORD", ""),
+			URL:      getEnvWithFallback("ARGUS_GRAFANA_URL", "GRAFANA_URL", "http://localhost:3000"),
+			Username: getEnvWithFallback("ARGUS_GRAFANA_USERNAME", "GRAFANA_USERNAME", "admin"),
+			Password: getEnvWithFallback("ARGUS_GRAFANA_PASSWORD", "GRAFANA_PASSWORD", ""),
 		},
 		Prometheus: ServiceConfig{
-			URL:      getEnv("PROMETHEUS_URL", "http://localhost:9090"),
-			Username: getEnv("PROMETHEUS_USERNAME", ""),
-			Password: getEnv("PROMETHEUS_PASSWORD", ""),
+			URL:      getEnvWithFallback("ARGUS_PROMETHEUS_URL", "PROMETHEUS_URL", "http://localhost:9090"),
+			Username: getEnvWithFallback("ARGUS_PROMETHEUS_USERNAME", "PROMETHEUS_USERNAME", ""),
+			Password: getEnvWithFallback("ARGUS_PROMETHEUS_PASSWORD", "PROMETHEUS_PASSWORD", ""),
 		},
 		AlertManager: ServiceConfig{
-			URL: getEnv("ALERTMANAGER_URL", "http://localhost:9093"),
+			URL: getEnvWithFallback("ARGUS_ALERTMANAGER_URL", "ALERTMANAGER_URL", "http://localhost:9093"),
 		},
 		Loki: ServiceConfig{
-			URL: getEnv("LOKI_URL", "http://localhost:3100"),
+			URL: getEnvWithFallback("ARGUS_LOKI_URL", "LOKI_URL", "http://localhost:3100"),
 		},
 		Tempo: ServiceConfig{
-			URL: getEnv("TEMPO_URL", "http://localhost:3200"),
+			URL: getEnvWithFallback("ARGUS_TEMPO_URL", "TEMPO_URL", "http://localhost:3200"),
 		},
 	}
 }

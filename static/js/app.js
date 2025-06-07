@@ -5,12 +5,14 @@ window.ArgusApp = {
     sidebarCollapsed: false,
     statusCheckInterval: null,
     
-    init() {
-        this.loadConfiguration();
+    async init() {
         this.setupEventHandlers();
         this.showPage('home');
-        this.startStatusChecking();
         this.updateActivitySummary();
+        
+        // Load configuration first, then start status checking
+        await this.loadConfiguration();
+        this.startStatusChecking();
     },
     
     async loadConfiguration() {
@@ -66,8 +68,6 @@ window.ArgusApp = {
                     environment: 'fallback'
                 };
             }
-            
-            this.checkLGTMStatus();
         } catch (error) {
             // Fallback to current host
             const baseUrl = `${window.location.protocol}//${window.location.host}`;
@@ -210,6 +210,12 @@ window.ArgusApp = {
     },
     
     startStatusChecking() {
+        // Clear any existing interval first
+        if (this.statusCheckInterval) {
+            clearInterval(this.statusCheckInterval);
+            this.statusCheckInterval = null;
+        }
+        
         // Check immediately
         this.checkLGTMStatus();
         
@@ -220,9 +226,14 @@ window.ArgusApp = {
     },
     
     async checkLGTMStatus() {
+        // Don't check status if config is not loaded yet
+        if (!this.config) {
+            return;
+        }
+
         // Use the new backend endpoint that actually checks LGTM services
         try {
-            const baseUrl = this.config?.api_base_url || `${window.location.protocol}//${window.location.host}`;
+            const baseUrl = this.config.api_base_url || `${window.location.protocol}//${window.location.host}`;
             const response = await fetch(`${baseUrl}/lgtm-status`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
@@ -710,6 +721,6 @@ window.ArgusApp = {
 };
 
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    window.ArgusApp.init();
+document.addEventListener('DOMContentLoaded', async () => {
+    await window.ArgusApp.init();
 }); 
